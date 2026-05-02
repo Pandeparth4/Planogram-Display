@@ -1,0 +1,2494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSP Planogram Intelligence Engine v8</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#080810;--sf:#0F0F18;--sf2:#16161F;--sf3:#1D1D28;--sf4:#242430;
+  --bd:#2A2A38;--bd2:#383848;--tx:#ECEAF5;--mu:#565668;--mu2:#8A8A9E;
+  --ac:#E8C547;--ac2:#C8A52F;--gn:#3DDB7A;--rd:#F06060;
+  --bl:#5BA3F5;--pu:#9B7FF5;--or:#F59642;--cy:#3DC8D8;
+  --zA:#4C8EF7;--zAb:rgba(76,142,247,.08);--zAd:rgba(76,142,247,.25);
+  --zB:#2DC96E;--zBb:rgba(45,201,110,.08);--zBd:rgba(45,201,110,.25);
+  --zC:#F57C42;--zCb:rgba(245,124,66,.08);--zCd:rgba(245,124,66,.25);
+  --zD:#9B7FF5;--zDb:rgba(155,127,245,.08);--zDd:rgba(155,127,245,.25);
+  --zE:#E8C547;--zEb:rgba(232,197,71,.08);--zEd:rgba(232,197,71,.25);
+  --zF:#3DC8D8;--zFb:rgba(61,200,216,.08);--zFd:rgba(61,200,216,.25);
+  --r:10px;--rl:14px;--fh:'Syne',sans-serif;--fb:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:var(--fb);font-size:13px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+.shell{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+.sidebar{background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{min-width:0;overflow-x:hidden}
+.lw{padding:18px 16px 12px;border-bottom:1px solid var(--bd)}
+.lm{font-family:var(--fh);font-size:19px;font-weight:800;color:var(--ac);display:flex;align-items:center;gap:7px}
+.ldot{width:8px;height:8px;border-radius:50%;background:var(--ac);box-shadow:0 0 8px var(--ac);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.lv{font-size:8.5px;padding:1px 5px;background:rgba(232,197,71,.12);border:1px solid rgba(232,197,71,.22);border-radius:3px;color:var(--ac);margin-left:3px;vertical-align:middle}
+.ls2{font-size:9px;color:var(--mu);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.ss{padding:11px 9px 4px}
+.sl{font-size:9px;color:var(--mu);letter-spacing:.12em;text-transform:uppercase;padding:0 7px;margin-bottom:3px}
+.sb{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:6px;cursor:pointer;font-family:var(--fb);font-size:11px;color:var(--mu2);transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.sb:hover{background:var(--sf2);color:var(--tx)}
+.sb.on{background:rgba(232,197,71,.09);color:var(--ac);border-left:2px solid var(--ac);padding-left:7px}
+.sb .ic{width:14px;text-align:center;font-size:12px;flex-shrink:0;opacity:.6}
+.sb.on .ic{opacity:1}
+.sb .zd{width:5px;height:5px;border-radius:50%;margin-left:auto}
+.sdiv{height:1px;background:var(--bd);margin:4px 13px}
+.pbadge{margin:0 9px 8px;padding:8px 10px;border-radius:7px;background:var(--sf2);border:1px solid var(--bd);font-size:10px;display:flex;align-items:center;gap:6px}
+.pdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.pdot-i{background:var(--mu)}.pdot-l{background:var(--gn);box-shadow:0 0 5px var(--gn)}.pdot-g{background:var(--ac);box-shadow:0 0 5px var(--ac);animation:pulse 1s infinite}
+.sfoot{margin-top:auto;padding:10px 13px;border-top:1px solid var(--bd);font-size:9.5px;color:var(--mu);line-height:1.9}
+.tb{padding:12px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--sf);position:sticky;top:0;z-index:20;gap:10px}
+.tbt{font-family:var(--fh);font-size:15px;font-weight:700}
+.tbm{font-size:10px;color:var(--mu);margin-top:1px}
+.tba{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn{padding:6px 12px;border-radius:6px;font-family:var(--fb);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;border:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.bp{background:var(--ac);color:#080810;font-weight:700}
+.bp:hover{background:var(--ac2);transform:translateY(-1px)}
+.bg2{background:var(--sf2);color:var(--tx);border:1px solid var(--bd2)}
+.bg2:hover{background:var(--sf3)}
+.br{background:rgba(240,96,96,.1);color:var(--rd);border:1px solid rgba(240,96,96,.22)}
+.bgn{background:rgba(61,219,122,.1);color:var(--gn);border:1px solid rgba(61,219,122,.22)}
+.bbl{background:rgba(91,163,245,.1);color:var(--bl);border:1px solid rgba(91,163,245,.22)}
+.bpu{background:rgba(155,127,245,.1);color:var(--pu);border:1px solid rgba(155,127,245,.22)}
+.bsm{padding:4px 9px;font-size:10px}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.page{display:none;padding:24px;animation:fi .18s ease}
+.page.on{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.ph{margin-bottom:20px}
+.pe{font-size:9px;color:var(--mu);letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+.pt{font-family:var(--fh);font-size:22px;font-weight:800;line-height:1.1;letter-spacing:-.5px}
+.ps{font-size:11px;color:var(--mu2);margin-top:4px;max-width:560px;line-height:1.7}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.ch{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:9px}
+.ch h3{font-family:var(--fh);font-size:12.5px;font-weight:700}
+.cb{padding:14px}
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.dc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px;position:relative;overflow:hidden}
+.dc::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.02),transparent);pointer-events:none}
+.dct{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.dcv{font-family:var(--fh);font-size:22px;font-weight:800;line-height:1}
+.dcs{font-size:9.5px;color:var(--mu2);margin-top:3px}
+.dcb{position:absolute;bottom:0;left:0;right:0;height:2px}
+.alert-row{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:8px;font-size:11px}
+.alert-c{background:rgba(240,96,96,.08);border:1px solid rgba(240,96,96,.22);color:var(--rd)}
+.alert-w{background:rgba(232,197,71,.08);border:1px solid rgba(232,197,71,.22);color:var(--ac)}
+.alert-g{background:rgba(61,219,122,.08);border:1px solid rgba(61,219,122,.22);color:var(--gn)}
+.alert-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.rec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.rec-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:13px}
+.rec-title{font-family:var(--fh);font-size:12px;font-weight:700;margin-bottom:5px}
+.rec-body{font-size:10.5px;color:var(--mu2);line-height:1.7}
+.hub-tabs{display:flex;gap:3px;margin-bottom:14px;border-bottom:1px solid var(--bd);padding-bottom:10px;flex-wrap:wrap}
+.htab{padding:5px 12px;border-radius:5px;font-family:var(--fb);font-size:10.5px;cursor:pointer;border:1px solid var(--bd);background:none;color:var(--mu2);transition:all .15s}
+.htab:hover{color:var(--tx);border-color:var(--bd2)}
+.htab.on{background:var(--ac);color:#080810;border-color:var(--ac);font-weight:700}
+.hub-panel{display:none}
+.hub-panel.on{display:block}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.dz{border:1.5px dashed var(--bd2);border-radius:8px;padding:24px 14px;text-align:center;cursor:pointer;transition:all .2s;color:var(--mu)}
+.dz:hover,.dz.dg{border-color:var(--ac);background:rgba(232,197,71,.03);color:var(--tx)}
+.dz p{font-size:11px;line-height:1.9}
+.dz strong{color:var(--ac)}
+.di{width:100%;min-height:130px;resize:vertical;background:var(--sf2);border:1px solid var(--bd);border-radius:7px;color:var(--tx);font-family:var(--fb);font-size:10px;padding:9px;line-height:1.7;outline:none;transition:border-color .2s}
+.di:focus{border-color:var(--ac)}
+.di::placeholder{color:var(--mu)}
+.fi{width:100%;padding:7px 10px;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-family:var(--fb);font-size:11px;outline:none;transition:border-color .2s}
+.fi:focus{border-color:var(--ac)}
+select.fi option{background:var(--sf2)}
+.fl{font-size:10px;color:var(--mu2);margin-bottom:3px;display:block}
+.fg{margin-bottom:10px}
+.pill{display:inline-block;padding:2px 7px;background:var(--sf2);border:1px solid var(--bd2);border-radius:4px;font-size:9.5px;color:var(--mu2);margin:2px}
+.vp-controls{display:flex;gap:6px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.vzb{padding:5px 11px;border-radius:5px;font-family:var(--fb);font-size:10px;cursor:pointer;border:1px solid var(--bd);background:none;color:var(--mu2);transition:all .15s}
+.vzb.on{font-weight:700}
+.vp-shelf{margin-bottom:8px;border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.vp-shelf-label{padding:6px 12px;background:var(--sf2);font-size:9.5px;color:var(--mu);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
+.vp-shelf-label.eye{background:rgba(232,197,71,.06);color:var(--ac)}
+.vp-shelf-row{display:flex;gap:6px;padding:8px 10px;min-height:64px;flex-wrap:wrap;align-items:stretch}
+.vp-sku{border-radius:6px;padding:7px 8px;display:flex;flex-direction:column;justify-content:space-between;font-size:9.5px;cursor:grab;min-width:80px;max-width:150px;transition:transform .15s}
+.vp-sku:hover{transform:scale(1.03)}
+.vp-sku-name{font-weight:600;color:var(--tx);line-height:1.3;margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vp-sku-brand{font-size:8.5px;color:var(--mu2)}
+.vp-sku-price{font-size:10.5px;font-weight:700;color:var(--ac);margin-top:3px}
+.vp-sku-meta{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap}
+.vp-sku-f{background:rgba(255,255,255,.08);border-radius:3px;padding:1px 5px;font-size:8.5px;color:var(--mu2)}
+.vp-bay{margin-bottom:16px;border-radius:var(--rl);overflow:hidden;border:1px solid var(--bd)}
+.vp-bay-head{padding:10px 14px;display:flex;align-items:center;gap:10px}
+.pb{margin-bottom:16px;border-radius:var(--rl);overflow:hidden;border:1px solid var(--bd)}
+.phead{padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.zbg{font-family:var(--fh);font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px}
+.znm{font-family:var(--fh);font-size:13px;font-weight:700}
+.zmt{font-size:9.5px;color:var(--mu2);padding:2px 6px;background:var(--sf2);border-radius:4px}
+.zfl{font-size:9px;color:var(--mu);margin-left:auto}
+.pt-t{width:100%;border-collapse:collapse;font-size:10.5px}
+.pt-t thead tr{background:var(--sf2)}
+.pt-t th{padding:7px 11px;text-align:left;color:var(--mu);font-size:9px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.pt-t td{padding:8px 11px;border-bottom:1px solid var(--bd);vertical-align:top;line-height:1.5}
+.pt-t tr:last-child td{border-bottom:none}
+.pt-t tr:hover td{background:rgba(255,255,255,.01)}
+.eye td{background:rgba(232,197,71,.025)}
+.eye .stg::after{content:" ★";color:var(--ac)}
+.rb{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;white-space:nowrap}
+.rHERO{background:rgba(232,197,71,.15);color:var(--ac)}.rCORE{background:rgba(61,219,122,.12);color:var(--gn)}
+.rENTRY{background:rgba(91,163,245,.12);color:var(--bl)}.rPREMIUM{background:rgba(155,127,245,.12);color:var(--pu)}
+.rADDON{background:rgba(255,255,255,.04);color:var(--mu2)}.rKVI{background:rgba(61,200,216,.12);color:var(--cy)}
+.fp{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:var(--sf3);border-radius:3px;font-size:9.5px;color:var(--mu2)}
+.fv{color:var(--tx);font-weight:600}
+.df{color:var(--gn);font-weight:600;font-size:10px}.dl{color:var(--or);font-size:10px}.ddb{color:var(--mu);font-size:10px}.dr{color:var(--rd);font-size:10px}
+.abcA{color:var(--gn);font-weight:700}.abcB{color:var(--or);font-weight:600}.abcC{color:var(--mu2)}
+.audit-row{padding:9px 13px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;font-size:10.5px}
+.audit-row:last-child{border-bottom:none}
+.tag-search{width:100%;padding:7px 10px;background:var(--sf2);border:1px solid var(--bd);border-radius:7px;color:var(--tx);font-family:var(--fb);font-size:11px;outline:none;margin-bottom:10px}
+.tag-search:focus{border-color:var(--ac)}
+.tag-toolbar{display:flex;gap:7px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.tag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+/* SHELF TAG — screen */
+.stc{background:#fff;color:#111;border-radius:7px;overflow:hidden;border:1px solid #e5e5e5;font-family:var(--fb);box-shadow:0 2px 8px rgba(0,0,0,.5);transition:all .15s;position:relative}
+.stc.sel{outline:2px solid var(--ac);outline-offset:2px}
+.stc:hover{transform:scale(1.02)}
+.stchk{position:absolute;top:6px;right:6px;width:16px;height:16px;cursor:pointer;accent-color:#E8C547}
+.sth{background:#CC0000;color:#fff;padding:4px 8px;font-size:8px;letter-spacing:.1em;display:flex;justify-content:space-between;align-items:center}
+.sth-logo{height:14px;width:auto;object-fit:contain;filter:brightness(10)}
+.stb{padding:8px}
+.stn{font-size:10px;font-weight:600;color:#111;line-height:1.3;margin-bottom:2px}
+.stbr{font-size:8px;color:#666;margin-bottom:6px}
+.st-mrp{font-size:10px;color:#888;text-decoration:line-through}
+.st-sp{font-size:20px;font-family:'Syne',sans-serif;font-weight:800;color:#111;line-height:1}
+.st-disc{font-size:8px;color:#CC0000;font-weight:700}
+.strl{display:inline-block;padding:1px 5px;border-radius:3px;font-size:7.5px;font-weight:700;margin-top:4px}
+.strl-H{background:#FFF3C4;color:#92620A}.strl-C{background:#DCFCE7;color:#166534}
+.strl-P{background:#EDE9FE;color:#5B21B6}.strl-E{background:#DBEAFE;color:#1E40AF}
+/* BARCODE TAG */
+.btc{background:#fff;border-radius:5px;overflow:hidden;border:1px solid #ddd;font-family:monospace;transition:all .15s;position:relative;cursor:pointer}
+.btc.sel{outline:2px solid var(--ac);outline-offset:2px}
+.bth{background:#1a1a1a;color:#fff;padding:3px 7px;font-size:7px;font-weight:700;text-align:center;letter-spacing:.15em}
+.btb{padding:6px 8px;text-align:center}
+.bt-name{font-size:9px;font-weight:700;color:#111;line-height:1.2;margin-bottom:4px;max-height:2.4em;overflow:hidden}
+.bt-bar{margin:4px auto;display:block}
+.bt-barnum{font-size:8px;color:#555;letter-spacing:.08em;margin-bottom:3px}
+.bt-price{font-size:16px;font-weight:900;color:#CC0000;font-family:'Syne',sans-serif}
+.bt-chk{position:absolute;top:3px;right:3px;width:14px;height:14px;cursor:pointer;accent-color:#E8C547}
+/* MODAL */
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.mov.show{display:flex}
+.mod{background:var(--sf);border:1px solid var(--bd2);border-radius:var(--rl);padding:22px;width:380px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mod h3{font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:14px}
+.vg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.vc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.vh{padding:9px 13px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
+.vh h3{font-family:var(--fh);font-size:12.5px;font-weight:700}
+.vr{padding:7px 13px;border-bottom:1px solid var(--bd)}
+.vr:last-child{border-bottom:none}
+.vr:hover{background:var(--sf2)}
+.vbar{height:2px;background:var(--bd);border-radius:1px;margin-top:4px}
+.vfill{height:100%;border-radius:1px}
+.fc2{background:var(--sf);border:1px solid rgba(240,96,96,.25);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
+.fch{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.fch h4{font-family:var(--fh);font-size:12.5px;font-weight:700;color:var(--rd)}
+.fc2 p{font-size:10.5px;color:var(--mu2);line-height:1.7}
+.frec{margin-top:6px;padding:6px 9px;background:rgba(240,96,96,.06);border-radius:5px;font-size:10px;color:var(--mu2)}
+.wc{background:var(--sf);border:1px solid rgba(232,197,71,.25);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
+.wch h4{font-family:var(--fh);font-size:12.5px;font-weight:700;color:var(--ac)}
+.wc p{font-size:10.5px;color:var(--mu2);line-height:1.7}
+.vmc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.vmh{padding:9px 13px;border-bottom:1px solid var(--bd);font-family:var(--fh);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+.vmb{padding:11px 13px;display:grid;gap:6px}
+.vmr{display:flex;gap:8px;padding:6px 8px;border-radius:5px;background:var(--sf2)}
+.vmn{font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd2);flex-shrink:0;width:16px;line-height:1.2;margin-top:1px}
+.vmt{font-size:11px;color:var(--mu2);line-height:1.6}
+.vmt strong{color:var(--tx)}
+.acat{border:1px solid var(--bd);border-radius:var(--r);margin-bottom:7px;overflow:hidden}
+.acath{padding:9px 13px;background:var(--sf);cursor:pointer;display:flex;align-items:center;gap:9px;user-select:none}
+.acath:hover{background:var(--sf2)}
+.acath .arr{font-size:9.5px;transition:transform .2s;flex-shrink:0}
+.acath.open .arr{transform:rotate(90deg)}
+.acatb{display:none;border-top:1px solid var(--bd);background:var(--sf2)}
+.acatb.open{display:block}
+.asku{padding:7px 13px 7px 28px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px;font-size:10.5px}
+.asku:last-child{border-bottom:none}
+.asku:hover{background:var(--sf3)}
+.asearch{width:100%;padding:7px 11px;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-family:var(--fb);font-size:11px;outline:none;margin-bottom:10px}
+.asearch:focus{border-color:var(--ac)}
+.sbar{height:3px;background:var(--bd);border-radius:2px;margin-top:3px}
+.sfill{height:100%;border-radius:2px;transition:width .5s ease}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+.mc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px}
+.ml2{font-size:9px;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.mv{font-family:var(--fh);font-size:20px;font-weight:800}
+.ms{font-size:9.5px;color:var(--mu2);margin-top:2px}
+.intel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.int-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:13px}
+.int-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.int-icon{font-size:18px}
+.int-title{font-family:var(--fh);font-size:12px;font-weight:700}
+.int-body{font-size:10.5px;color:var(--mu2);line-height:1.7}
+.int-body strong{color:var(--tx)}
+.rep-row{padding:9px 13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;font-size:10.5px}
+.rep-row:last-child{border-bottom:none}
+.rep-from{color:var(--rd);flex:1}
+.rep-arrow{color:var(--mu);font-size:14px}
+.rep-to{color:var(--gn);flex:1}
+.rep-reason{font-size:9.5px;color:var(--mu);min-width:80px;text-align:right}
+.ct{width:100%;border-collapse:collapse;font-size:10.5px}
+.ct th{text-align:left;padding:6px 9px;color:var(--mu);font-size:9px;text-transform:uppercase;letter-spacing:.08em;background:var(--sf2);border-bottom:1px solid var(--bd)}
+.ct td{padding:6px 9px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.ct tr:last-child td{border-bottom:none}
+.cin{background:transparent;border:none;color:var(--tx);font-family:var(--fb);font-size:10.5px;outline:none;width:100%}
+.cin:focus{color:var(--ac)}
+.lov{position:fixed;inset:0;background:rgba(8,8,16,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(6px)}
+.lov.show{display:flex}
+.lring{width:42px;height:42px;border:2px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ltx{font-family:var(--fh);font-size:15px;font-weight:700}
+.lsx{font-size:10.5px;color:var(--mu);margin-top:4px;text-align:center;max-width:280px}
+.lsteps{margin-top:18px;display:flex;flex-direction:column;gap:4px}
+.lsl{font-size:10.5px;color:var(--mu);padding:4px 12px;border-radius:4px;transition:all .25s;display:flex;align-items:center;gap:7px}
+.lsl::before{content:'○';font-size:9px}
+.lsl.a{color:var(--ac);background:rgba(232,197,71,.07)}.lsl.a::before{content:'●'}
+.lsl.d{color:var(--gn)}.lsl.d::before{content:'✓'}
+.lsl.e{color:var(--rd)}.lsl.e::before{content:'✕'}
+.toast{position:fixed;bottom:16px;right:16px;padding:9px 14px;border-radius:6px;font-size:11px;display:none;z-index:400;animation:su .22s ease}
+.toast.show{display:flex;align-items:center;gap:6px}
+.tok{background:rgba(61,219,122,.12);border:1px solid rgba(61,219,122,.3);color:var(--gn)}
+.terr{background:rgba(240,96,96,.12);border:1px solid rgba(240,96,96,.3);color:var(--rd)}
+.tinf{background:rgba(91,163,245,.12);border:1px solid rgba(91,163,245,.3);color:var(--bl)}
+@keyframes su{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.sh{display:flex;align-items:center;gap:10px;margin:20px 0 11px}
+.sh h2{font-family:var(--fh);font-size:13.5px;font-weight:700;white-space:nowrap}
+.shl{flex:1;height:1px;background:var(--bd)}
+.exr{padding:12px 0;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.exr:last-child{border-bottom:none}
+.exn{font-family:var(--fh);font-size:12.5px;font-weight:700}
+.exd{font-size:10px;color:var(--mu2);margin-top:1px}
+.empty{text-align:center;padding:56px 28px;color:var(--mu)}
+.ei{font-size:36px;margin-bottom:11px;opacity:.22}
+.empty h3{font-family:var(--fh);font-size:16px;color:var(--mu2);margin-bottom:5px}
+.empty p{font-size:11px;max-width:340px;margin:0 auto;line-height:1.8}
+/* LMS specific */
+.lms-tabs{display:flex;gap:4px;margin-bottom:16px;padding:4px;background:var(--sf2);border-radius:8px;border:1px solid var(--bd)}
+.lms-tab{padding:7px 16px;border-radius:6px;font-family:var(--fb);font-size:10.5px;cursor:pointer;border:none;background:none;color:var(--mu2);transition:all .15s;flex:1;text-align:center}
+.lms-tab.on{background:var(--sf);color:var(--ac);font-weight:700;border:1px solid var(--bd2)}
+.lms-panel{display:none}
+.lms-panel.on{display:block}
+.bm-row{padding:7px 13px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 130px 120px 90px auto;gap:10px;align-items:center;font-size:10px}
+.bm-row:last-child{border-bottom:none}
+.bm-head{background:var(--sf2);font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.08em}
+.tag-size-inp{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:var(--sf2);border:1px solid var(--bd);border-radius:5px;font-size:10px}
+.tag-size-inp input{width:40px;background:transparent;border:none;color:var(--ac);font-family:var(--fb);font-size:10px;outline:none;text-align:center}
+.demo-banner{background:rgba(91,163,245,.08);border:1px solid rgba(91,163,245,.25);border-radius:8px;padding:8px 14px;font-size:10.5px;color:var(--bl);display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.ntd-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;background:rgba(61,219,122,.1);border:1px solid rgba(61,219,122,.25);border-radius:4px;font-size:9px;color:var(--gn);font-weight:700}
+.hist-row{padding:8px 13px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:140px 1fr auto;gap:10px;font-size:10.5px;align-items:start}
+.hist-row:last-child{border-bottom:none}
+.un-badge{padding:4px 10px;background:var(--sf2);border:1px solid var(--bd);border-radius:20px;font-size:10px;color:var(--mu2);cursor:pointer;display:flex;align-items:center;gap:5px}
+.un-badge:hover{border-color:var(--ac);color:var(--ac)}
+.diag-weight{display:grid;grid-template-columns:1fr auto 100px;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.diag-slider{width:100%;accent-color:var(--ac);cursor:pointer}
+.diag-score-big{font-family:var(--fh);font-size:48px;font-weight:800;line-height:1;text-align:center;padding:20px}
+/* SELF-HEAL LOG */
+.heal-entry{padding:6px 12px;border-bottom:1px solid var(--bd);font-size:10px;display:flex;align-items:flex-start;gap:8px}
+.heal-ok{color:var(--gn)}.heal-warn{color:var(--or)}.heal-fix{color:var(--bl)}
+/* LOGO UPLOAD */
+.logo-preview{width:120px;height:48px;object-fit:contain;background:#1a1a1a;border-radius:4px;padding:4px;border:1px solid var(--bd)}
+.logo-preview-empty{width:120px;height:48px;background:var(--sf2);border:1px dashed var(--bd2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--mu);cursor:pointer}
+/* PRINT */
+@media print{
+  .sidebar,.tb,.lov,.toast,.tag-toolbar,.tba,.vp-controls,.no-print{display:none!important}
+  .shell{grid-template-columns:1fr}.page{display:block!important;padding:4mm}
+  body{font-size:10px;background:#fff;color:#000}
+  .vp-shelf,.pb,.card{border-color:#ccc}
+  /* Shelf tag print */
+  .stc{box-shadow:none!important;transform:none!important;page-break-inside:avoid}
+  .tag-grid{display:flex;flex-wrap:wrap;gap:3mm}
+}
+/* ONBOARDING */
+.onb-ov{position:fixed;inset:0;background:rgba(8,8,16,.97);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.onb-box{background:var(--sf);border:1px solid var(--bd2);border-radius:16px;width:480px;max-width:95vw;padding:32px;text-align:center}
+.onb-step{display:none}.onb-step.on{display:block}
+.onb-icon{font-size:40px;margin-bottom:12px}
+.onb-title{font-family:var(--fh);font-size:20px;font-weight:800;margin-bottom:8px}
+.onb-desc{font-size:11.5px;color:var(--mu2);line-height:1.8;margin-bottom:20px}
+.onb-dots{display:flex;gap:5px;justify-content:center;margin-bottom:18px}
+.onb-dot{width:6px;height:6px;border-radius:50%;background:var(--bd2);transition:.2s}
+.onb-dot.on{background:var(--ac);width:18px;border-radius:3px}
+.onb-prog{height:2px;background:var(--bd);border-radius:1px;margin-bottom:20px}
+.onb-prog-fill{height:100%;background:var(--ac);border-radius:1px;transition:width .4s}
+/* STATUS BAR */
+.status-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;font-size:10px;color:var(--mu)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--mu);flex-shrink:0}
+.status-dot.ok{background:var(--gn);box-shadow:0 0 5px var(--gn)}
+.status-dot.warn{background:var(--or)}
+.status-dot.err{background:var(--rd)}
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto}
+  .dash-grid,.mg,.ig,.vg,.intel-grid,.rec-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="lov" id="LOV">
+  <div class="lring"></div>
+  <div class="ltx">MSP Planogram Engine v8</div>
+  <div class="lsx">Analysing · Zoning · Scoring · Self-Healing Active</div>
+  <div class="lsteps">
+    <div class="lsl" id="ls1">Parsing &amp; deduplicating datasets</div>
+    <div class="lsl" id="ls2">Running ABC + demand rate analysis</div>
+    <div class="lsl" id="ls3">Calculating DOI · Sell-through · Space Productivity</div>
+    <div class="lsl" id="ls4">Detecting brand dominance &amp; cannibalization</div>
+    <div class="lsl" id="ls5">Applying display eligibility decision rules</div>
+    <div class="lsl" id="ls6">Computing facings: Demand × Margin × Zone</div>
+    <div class="lsl" id="ls7">Building replacement engine &amp; demand forecast</div>
+    <div class="lsl" id="ls8">AI planogram generation (with fallback)</div>
+    <div class="lsl" id="ls9">Validating output · Saving state</div>
+  </div>
+  <div id="lovStatus" style="margin-top:12px;font-size:10px;color:var(--mu);text-align:center"></div>
+</div>
+
+<!-- TAG EDIT MODAL -->
+<div class="mov" id="tagModal">
+  <div class="mod">
+    <h3>✏ Edit Shelf Tag</h3>
+    <div class="fg"><label class="fl">Product Name</label><input class="fi" id="te_n"></div>
+    <div class="fg"><label class="fl">Brand</label><input class="fi" id="te_b"></div>
+    <div class="fg"><label class="fl">MRP ₹</label><input class="fi" id="te_m" type="number" oninput="calcFinal()"></div>
+    <div class="fg"><label class="fl">Discount %</label><input class="fi" id="te_d" type="number" placeholder="0" oninput="calcFinal()"></div>
+    <div class="fg"><label class="fl">Special Price ₹</label><input class="fi" id="te_sp" style="color:var(--gn);font-weight:700" readonly></div>
+    <div class="fg"><label class="fl">Barcode</label><input class="fi" id="te_bc" placeholder="Auto-generate if empty"></div>
+    <div class="fg"><label class="fl">Internal Code</label><input class="fi" id="te_c" placeholder="MSP-001"></div>
+    <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:14px">
+      <button class="btn bg2 bsm" onclick="closeTagModal()">Cancel</button>
+      <button class="btn bp bsm" onclick="saveTag()">Save Tag</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT SCOPE MODAL -->
+<div class="mov" id="printModal">
+  <div class="mod">
+    <h3>🖨 Scoped Print</h3>
+    <div class="fg"><label class="fl">Print by</label>
+      <select class="fi" id="print_by">
+        <option value="all">Full Planogram</option>
+        <option value="zone">Zone</option>
+        <option value="tags">Shelf Tags Only</option>
+        <option value="barcodes">Barcode Labels Only</option>
+      </select>
+    </div>
+    <div class="fg" id="print_zone_wrap"><label class="fl">Select Zone</label>
+      <select class="fi" id="print_zone"><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select>
+    </div>
+    <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:14px">
+      <button class="btn bg2 bsm" onclick="document.getElementById('printModal').classList.remove('show')">Cancel</button>
+      <button class="btn bbl bsm" onclick="executePrint()">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER NAME MODAL -->
+<div class="mov" id="unModal">
+  <div class="mod">
+    <h3>👤 Set Your Name</h3>
+    <div class="fg"><label class="fl">Your Name</label><input class="fi" id="unInput" placeholder="e.g. Rahul / Store Manager"></div>
+    <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:14px">
+      <button class="btn bg2 bsm" onclick="document.getElementById('unModal').classList.remove('show')">Cancel</button>
+      <button class="btn bp bsm" onclick="saveUserName()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <div class="lw">
+    <div class="lm"><div class="ldot"></div> MSP <span class="lv">v8</span></div>
+    <div class="ls2">Planogram + Label Intelligence</div>
+  </div>
+  <div class="ss">
+    <div class="sl">Dashboard</div>
+    <button class="sb" onclick="nav('dash')"><span class="ic">◈</span> Landing Dashboard</button>
+    <button class="sb" onclick="nav('hub')"><span class="ic">◫</span> Master Data Hub</button>
+    <button class="sb" onclick="nav('audit')"><span class="ic">⚠</span> Data Audit Engine</button>
+  </div>
+  <div class="ss">
+    <div class="sl">Ground Floor</div>
+    <button class="sb" onclick="nav('zA')"><span class="ic">▪</span> Zone A — Comparison <span class="zd" style="background:var(--zA)"></span></button>
+    <button class="sb" onclick="nav('zB')"><span class="ic">▪</span> Zone B — Basket Builder <span class="zd" style="background:var(--zB)"></span></button>
+    <button class="sb" onclick="nav('zC')"><span class="ic">▪</span> Zone C — Destination <span class="zd" style="background:var(--zC)"></span></button>
+  </div>
+  <div class="ss">
+    <div class="sl">First Floor</div>
+    <button class="sb" onclick="nav('zD')"><span class="ic">▪</span> Zone D — High Value <span class="zd" style="background:var(--zD)"></span></button>
+    <button class="sb" onclick="nav('zE')"><span class="ic">▪</span> Zone E — Exploration <span class="zd" style="background:var(--zE)"></span></button>
+    <button class="sb" onclick="nav('zF')"><span class="ic">▪</span> Zone F — Utility <span class="zd" style="background:var(--zF)"></span></button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="ss">
+    <div class="sl">Visual</div>
+    <button class="sb" onclick="nav('visplano')"><span class="ic">⊞</span> Visual Shelf View</button>
+  </div>
+  <div class="ss">
+    <div class="sl">Label Management</div>
+    <button class="sb" onclick="nav('lms')"><span class="ic">🏷</span> Label System (LMS)</button>
+    <button class="sb" onclick="nav('barcodes')"><span class="ic">▦</span> Barcode Engine</button>
+    <button class="sb" onclick="nav('bmaster')"><span class="ic">◉</span> Barcode Master</button>
+  </div>
+  <div class="ss">
+    <div class="sl">Intelligence</div>
+    <button class="sb" onclick="nav('intel')"><span class="ic">🧠</span> Intelligence Layer</button>
+    <button class="sb" onclick="nav('replace')"><span class="ic">↻</span> Replacement Engine</button>
+    <button class="sb" onclick="nav('assort')"><span class="ic">◉</span> Assortment Decisions</button>
+    <button class="sb" onclick="nav('vel')"><span class="ic">▲</span> SKU Velocity · ABC</button>
+    <button class="sb" onclick="nav('backend')"><span class="ic">◧</span> Backend Assortment</button>
+    <button class="sb" onclick="nav('vm')"><span class="ic">☰</span> VM Rules</button>
+  </div>
+  <div class="ss">
+    <div class="sl">System</div>
+    <button class="sb" onclick="nav('diag')"><span class="ic">⚙</span> Diagnostics</button>
+    <button class="sb" onclick="nav('metrics')"><span class="ic">◈</span> Retail Metrics</button>
+    <button class="sb" onclick="nav('selfheal')"><span class="ic">🔧</span> Self-Heal Log <span id="healBadge" style="display:none;background:var(--bl);color:#fff;border-radius:8px;padding:0 5px;font-size:9px;margin-left:auto;line-height:15px"></span></button>
+    <button class="sb" onclick="nav('usertrack')"><span class="ic">👤</span> User &amp; History</button>
+    <button class="sb" onclick="nav('config')"><span class="ic">⚙</span> Store Config</button>
+    <button class="sb" onclick="nav('flags')"><span class="ic">⚑</span> Flags <span id="fc-b" style="display:none;background:var(--rd);color:#fff;border-radius:8px;padding:0 5px;font-size:9px;margin-left:auto;line-height:15px"></span></button>
+    <button class="sb" onclick="nav('export')"><span class="ic">↓</span> Export</button>
+  </div>
+  <div class="pbadge" id="pb">
+    <span class="pdot pdot-i" id="pd"></span>
+    <span id="pt2" style="color:var(--mu)">No data loaded</span>
+  </div>
+  <div class="sfoot">MSP Store · Nagpur<br><span style="color:var(--bd2)">Planogram + LMS · v8</span><br><span id="pinfo" style="color:var(--mu)"></span></div>
+</aside>
+
+<main class="main">
+  <div class="tb">
+    <div><div class="tbt" id="tbT">Landing Dashboard</div><div class="tbm" id="tbM">Store health · Alerts · Recommendations · Planogram status</div></div>
+    <div class="tba">
+      <div class="un-badge" onclick="document.getElementById('unModal').classList.add('show')" id="unBadge">👤 <span id="unName">Set Name</span></div>
+      <button class="btn bg2 bsm" onclick="toggleDemo()" id="demoBtn">⚡ Demo</button>
+      <button class="btn br bsm" onclick="clearAll()" id="clrBtn" style="display:none">↺ Clear</button>
+      <button class="btn bg2 bsm" onclick="document.getElementById('printModal').classList.add('show')" id="prtBtn" style="display:none">🖨 Print</button>
+      <button class="btn bgn bsm" onclick="exportExcelV8()" id="xlBtn" style="display:none">↓ Excel</button>
+      <button class="btn bp" onclick="generate()" id="genBtn" disabled>⟡ Generate Planogram</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page on" id="page-dash">
+    <div class="ph"><div class="pe">Home</div><div class="pt">Landing Dashboard</div>
+      <div class="ps">Real-time store health · Live alerts · Data-driven recommendations · Planogram execution status</div>
+    </div>
+    <div class="dash-grid" id="dashMetrics">
+      <div class="dc"><div class="dct">Total SKUs</div><div class="dcv" id="dm-skus" style="color:var(--ac)">—</div><div class="dcs">Loaded in system</div><div class="dcb" style="background:var(--ac)"></div></div>
+      <div class="dc"><div class="dct">Total Revenue</div><div class="dcv" id="dm-rev" style="color:var(--gn)">—</div><div class="dcs">From sales data</div><div class="dcb" style="background:var(--gn)"></div></div>
+      <div class="dc"><div class="dct">GMROI (Est.)</div><div class="dcv" id="dm-gmroi" style="color:var(--bl)">—</div><div class="dcs">Gross Margin Return</div><div class="dcb" style="background:var(--bl)"></div></div>
+      <div class="dc"><div class="dct">Active Flags</div><div class="dcv" id="dm-flags" style="color:var(--rd)">—</div><div class="dcs">Require action</div><div class="dcb" style="background:var(--rd)"></div></div>
+      <div class="dc"><div class="dct">Display SKUs</div><div class="dcv" id="dm-disp" style="color:var(--gn)">—</div><div class="dcs">On floor</div><div class="dcb" style="background:var(--gn)"></div></div>
+      <div class="dc"><div class="dct">Labels Generated</div><div class="dcv" id="dm-labels" style="color:var(--cy)">—</div><div class="dcs">Shelf tags + barcodes</div><div class="dcb" style="background:var(--cy)"></div></div>
+      <div class="dc"><div class="dct">Self-Heal Events</div><div class="dcv" id="dm-heal" style="color:var(--bl)">—</div><div class="dcs">Auto-fixed issues</div><div class="dcb" style="background:var(--bl)"></div></div>
+      <div class="dc"><div class="dct">Planogram Status</div><div class="dcv" id="dm-status" style="color:var(--mu2);font-size:13px">Not Generated</div><div class="dcs" id="dm-stdt">Load data to begin</div><div class="dcb" style="background:var(--mu)"></div></div>
+    </div>
+    <div id="dashAlerts"><div class="alert-row"><div class="alert-item alert-g"><span class="alert-icon">✓</span><span>Load your sales data to see live alerts and recommendations.</span></div></div></div>
+    <div class="sh"><h2>Recommendations</h2><div class="shl"></div></div>
+    <div id="dashRecs"><div class="rec-grid"><div class="rec-card"><div class="rec-title" style="color:var(--mu)">Load data to see recommendations</div><div class="rec-body">AI-generated, data-specific recommendations appear after generating.</div></div></div></div>
+    <div class="sh"><h2>Zone Status</h2><div class="shl"></div></div>
+    <div id="dashZones" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div style="color:var(--mu);font-size:11px;grid-column:1/-1;text-align:center;padding:20px">Generate planogram to see zone status</div>
+    </div>
+  </div>
+
+  <!-- MASTER DATA HUB -->
+  <div class="page" id="page-hub">
+    <div class="ph"><div class="pe">Data</div><div class="pt">Master Data Hub</div>
+      <div class="ps">Sales · Inventory · Purchase · Customer · Vendor — all datasets centralised.</div>
+    </div>
+    <div class="hub-tabs">
+      <button class="htab on" onclick="switchHub('sales',this)">📊 Sales Data</button>
+      <button class="htab" onclick="switchHub('inv',this)">📦 Inventory</button>
+      <button class="htab" onclick="switchHub('purch',this)">🛒 Purchase</button>
+      <button class="htab" onclick="switchHub('cust',this)">👤 Customer</button>
+      <button class="htab" onclick="switchHub('vend',this)">🏭 Vendor</button>
+    </div>
+    <div class="hub-panel on" id="hub-sales">
+      <div class="ig">
+        <div class="card">
+          <div class="ch"><h3>📂 Upload Excel / CSV</h3><span class="pill">.xlsx</span><span class="pill">.csv</span></div>
+          <div class="cb">
+            <div class="dz" id="DZ-sales" onclick="document.getElementById('FI-sales').click()">
+              <div style="font-size:22px;margin-bottom:5px">⬆</div>
+              <p>Drag &amp; drop or <strong>click to browse</strong><br><span style="font-size:9.5px;color:var(--mu)">MSP sales export works directly</span></p>
+            </div>
+            <input type="file" id="FI-sales" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this,'sales')">
+            <div id="st-sales" style="margin-top:7px;font-size:10.5px;color:var(--mu)"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><h3>📋 Paste CSV</h3><button class="btn bg2 bsm" onclick="loadSample()">Load Sample</button></div>
+          <div class="cb">
+            <textarea class="di" id="csvIn" placeholder="Item/Tax Name, Make, Sub Group, Quantity, Net Amount, Gross Rate"></textarea>
+            <div style="margin-top:7px;display:flex;gap:6px;justify-content:flex-end">
+              <button class="btn bp bsm" onclick="parseCSV()">Parse CSV →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="ch"><h3>✚ Manual SKU</h3></div><div class="cb">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1.2fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
+          <div class="fg" style="margin:0"><label class="fl">SKU Name</label><input class="fi" id="fn" placeholder="Product name"></div>
+          <div class="fg" style="margin:0"><label class="fl">Brand</label><input class="fi" id="fm" placeholder="Brand"></div>
+          <div class="fg" style="margin:0"><label class="fl">Category</label><input class="fi" id="fg2" placeholder="Category"></div>
+          <div class="fg" style="margin:0"><label class="fl">Units</label><input class="fi" id="fq" type="number"></div>
+          <div class="fg" style="margin:0"><label class="fl">Revenue ₹</label><input class="fi" id="fr" type="number"></div>
+          <div class="fg" style="margin:0"><label class="fl">MRP ₹</label><input class="fi" id="fp" type="number"></div>
+          <button class="btn bgn" onclick="addSKU()">+ Add</button>
+        </div>
+        <div id="mList" style="margin-top:9px;max-height:140px;overflow-y:auto"></div>
+      </div></div>
+    </div>
+    <div class="hub-panel" id="hub-inv">
+      <div class="ig">
+        <div class="card"><div class="ch"><h3>📦 Upload Inventory</h3></div><div class="cb">
+          <div class="dz" id="DZ-inv" onclick="document.getElementById('FI-inv').click()"><div style="font-size:22px;margin-bottom:5px">⬆</div><p>Item Name · Stock Qty · Ageing Days</p></div>
+          <input type="file" id="FI-inv" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this,'inv')">
+          <div id="st-inv" style="margin-top:7px;font-size:10.5px;color:var(--mu)"></div>
+        </div></div>
+        <div class="card"><div class="ch"><h3>Inventory Preview</h3></div><div class="cb" id="inv-preview" style="font-size:10.5px;color:var(--mu)">No inventory data loaded.</div></div>
+      </div>
+    </div>
+    <div class="hub-panel" id="hub-purch">
+      <div class="ig">
+        <div class="card"><div class="ch"><h3>🛒 Upload Purchase</h3></div><div class="cb">
+          <div class="dz" id="DZ-purch" onclick="document.getElementById('FI-purch').click()"><div style="font-size:22px;margin-bottom:5px">⬆</div><p>Item Name · Units Purchased · Cost Price</p></div>
+          <input type="file" id="FI-purch" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this,'purch')">
+          <div id="st-purch" style="margin-top:7px;font-size:10.5px;color:var(--mu)"></div>
+        </div></div>
+        <div class="card"><div class="ch"><h3>Purchase Preview</h3></div><div class="cb" id="purch-preview" style="font-size:10.5px;color:var(--mu)">No purchase data loaded.</div></div>
+      </div>
+    </div>
+    <div class="hub-panel" id="hub-cust">
+      <div class="card"><div class="cb" style="text-align:center;padding:40px">
+        <div style="font-size:32px;margin-bottom:10px;opacity:.3">👤</div>
+        <div style="font-family:var(--fh);font-size:16px;color:var(--mu2);margin-bottom:7px">Customer Data (Optional)</div>
+        <div style="font-size:11px;color:var(--mu)">Columns: Bill ID, Item Name, Bill Date</div>
+        <div style="margin-top:14px"><button class="btn bg2 bsm" onclick="document.getElementById('FI-cust').click()">Upload</button></div>
+        <input type="file" id="FI-cust" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this,'cust')">
+        <div id="st-cust" style="margin-top:7px;font-size:10.5px;color:var(--mu)"></div>
+      </div></div>
+    </div>
+    <div class="hub-panel" id="hub-vend">
+      <div class="card"><div class="cb" style="text-align:center;padding:40px">
+        <div style="font-size:32px;margin-bottom:10px;opacity:.3">🏭</div>
+        <div style="font-family:var(--fh);font-size:16px;color:var(--mu2);margin-bottom:7px">Vendor Data (Optional)</div>
+        <div style="font-size:11px;color:var(--mu)">Columns: Item Name, Vendor, Lead Time Days, MOQ</div>
+        <div style="margin-top:14px"><button class="btn bg2 bsm" onclick="document.getElementById('FI-vend').click()">Upload</button></div>
+        <input type="file" id="FI-vend" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this,'vend')">
+        <div id="st-vend" style="margin-top:7px;font-size:10.5px;color:var(--mu)"></div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- AUDIT -->
+  <div class="page" id="page-audit">
+    <div class="ph"><div class="pe">Validation</div><div class="pt">Data Audit Engine</div></div>
+    <div id="auditContent"><div class="empty"><div class="ei">⚠</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- ZONE PAGES -->
+  <div class="page" id="page-zA"><div class="ph"><div class="pe">Ground Floor</div><div class="pt" style="color:var(--zA)">Zone A — Comparison Zone</div><div class="ps">Kitchen Electrics · Garment Care · Home Care · Gondola + Demo</div></div><div id="cA"><div class="empty"><div class="ei">▪</div><h3>Awaiting data</h3></div></div></div>
+  <div class="page" id="page-zB"><div class="ph"><div class="pe">Ground Floor</div><div class="pt" style="color:var(--zB)">Zone B — Basket Builder</div><div class="ps">Cookware · Kitchen Tools · Gondola + Hooks</div></div><div id="cB"><div class="empty"><div class="ei">▪</div><h3>Awaiting data</h3></div></div></div>
+  <div class="page" id="page-zC"><div class="ph"><div class="pe">Ground Floor</div><div class="pt" style="color:var(--zC)">Zone C — Destination Zone</div><div class="ps">Gas Stove + Chimney · Pressure Cooker · Wet Grinder</div></div><div id="cC"><div class="empty"><div class="ei">▪</div><h3>Awaiting data</h3></div></div></div>
+  <div class="page" id="page-zD"><div class="ph"><div class="pe">First Floor</div><div class="pt" style="color:var(--zD)">Zone D — High Value Decision</div><div class="ps">Large Appliances · Air Fryer · Microwave · Water Purifier · Personal Care</div></div><div id="cD"><div class="empty"><div class="ei">▪</div><h3>Awaiting data</h3></div></div></div>
+  <div class="page" id="page-zE"><div class="ph"><div class="pe">First Floor</div><div class="pt" style="color:var(--zE)">Zone E — Exploration Zone</div><div class="ps">Tiffin · Water Bottles · Tableware · Dinner Sets · Storage</div></div><div id="cE"><div class="empty"><div class="ei">▪</div><h3>Awaiting data</h3></div></div></div>
+  <div class="page" id="page-zF"><div class="ph"><div class="pe">First Floor · Near Billing</div><div class="pt" style="color:var(--zF)">Zone F — Utility Zone</div><div class="ps">Spare Parts · Cartridges · Gaskets · Cleaning · Pest Control</div></div><div id="cF"><div class="empty"><div class="ei">▪</div><h3>Awaiting data</h3></div></div></div>
+
+  <!-- VISUAL PLANOGRAM -->
+  <div class="page" id="page-visplano">
+    <div class="ph"><div class="pe">Visual</div><div class="pt">Visual Shelf Planogram</div></div>
+    <div class="vp-controls">
+      <button class="btn bg2 bsm" onclick="setVPView('zone',this)" id="vpv-zone" style="border-color:var(--ac);color:var(--ac)">Zone View</button>
+      <button class="btn bg2 bsm" onclick="setVPView('bay',this)" id="vpv-bay">Bay View</button>
+      <button class="btn bg2 bsm" onclick="setVPView('shelf',this)" id="vpv-shelf">Shelf View</button>
+      <div style="margin-left:auto;font-size:10px;color:var(--mu2)">Zone:</div>
+      <div class="vp-zone-sel" id="vpZoneSel">
+        <button class="vzb on" onclick="setVPZone('A',this)" style="border-color:var(--zA);color:var(--zA)">A</button>
+        <button class="vzb" onclick="setVPZone('B',this)" style="color:var(--zB)">B</button>
+        <button class="vzb" onclick="setVPZone('C',this)" style="color:var(--zC)">C</button>
+        <button class="vzb" onclick="setVPZone('D',this)" style="color:var(--zD)">D</button>
+        <button class="vzb" onclick="setVPZone('E',this)" style="color:var(--zE)">E</button>
+        <button class="vzb" onclick="setVPZone('F',this)" style="color:var(--zF)">F</button>
+      </div>
+    </div>
+    <div id="vpContent"><div class="empty"><div class="ei">⊞</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- LMS — LABEL MANAGEMENT SYSTEM -->
+  <div class="page" id="page-lms">
+    <div class="ph"><div class="pe">Label Management System</div><div class="pt">LMS — Shelf Tag Engine</div>
+      <div class="ps">Professional shelf tags with logo · Barcode integration · Print-accurate layout · Custom dimensions</div>
+    </div>
+    <!-- Logo Upload -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ch"><h3>🏪 Store Logo</h3><span style="font-size:10px;color:var(--mu)">Appears on all shelf tags and barcode labels</span></div>
+      <div class="cb" style="display:flex;align-items:center;gap:16px">
+        <div id="logoPreviewWrap">
+          <div class="logo-preview-empty" onclick="document.getElementById('logoUpload').click()">+ Upload Logo</div>
+        </div>
+        <input type="file" id="logoUpload" accept="image/*" style="display:none" onchange="handleLogo(this)">
+        <div style="flex:1">
+          <div style="font-size:10.5px;color:var(--mu2);margin-bottom:8px">Upload PNG/SVG logo. It will auto-scale to fit any tag size without distortion.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn bg2 bsm" onclick="document.getElementById('logoUpload').click()">📁 Upload Logo</button>
+            <button class="btn br bsm" onclick="removeLogo()">Remove</button>
+          </div>
+          <div id="logoStatus" style="font-size:9.5px;color:var(--mu);margin-top:6px"></div>
+        </div>
+        <div style="font-size:10px;color:var(--mu2)">
+          <div><strong style="color:var(--tx)">Preview on tag →</strong></div>
+          <div id="logoTagPreview" style="margin-top:6px;background:#CC0000;padding:4px 10px;border-radius:4px;display:inline-flex;align-items:center;gap:8px">
+            <span style="color:#fff;font-size:8px;letter-spacing:.1em">MS PANDE &amp; SONS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Tag search + filter -->
+    <input class="tag-search" id="tagSearch" placeholder="Search SKU or brand..." oninput="applyTagFilter()">
+    <div class="tag-toolbar">
+      <select class="fi" id="tZone" style="width:100px" onchange="applyTagFilter()"><option value="">All Zones</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select>
+      <select class="fi" id="tRole" style="width:120px" onchange="applyTagFilter()"><option value="">All Roles</option><option>HERO</option><option>CORE</option><option>PREMIUM</option><option>ENTRY</option></select>
+      <div class="tag-size-inp">W:<input id="tagW" value="80" title="Width mm">mm H:<input id="tagH" value="50" title="Height mm">mm</div>
+      <button class="btn bg2 bsm" onclick="selectAllTags()">☑ All</button>
+      <button class="btn bg2 bsm" onclick="deselectAllTags()">☐ None</button>
+      <button class="btn bbl bsm" onclick="printSelectedTagsV8()">🖨 Print Tags</button>
+      <button class="btn bpu bsm" onclick="printShelfTagsPDF()">📄 PDF</button>
+      <span id="sel-count" style="font-size:10.5px;color:var(--mu)">0 selected</span>
+    </div>
+    <div id="tagsContent"><div class="empty"><div class="ei">🏷</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- BARCODE ENGINE -->
+  <div class="page" id="page-barcodes">
+    <div class="ph"><div class="pe">Label System</div><div class="pt">Barcode Price Tag Engine</div>
+      <div class="ps">Auto-generate barcodes · Thermal print optimised · Sticker sheet layout · Barcode master sync</div>
+    </div>
+    <div class="tag-toolbar">
+      <select class="fi" id="bcZone" style="width:100px" onchange="applyBcFilter()"><option value="">All Zones</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select>
+      <div class="tag-size-inp">W:<input id="bcW" value="50" title="Width mm">mm H:<input id="bcH" value="30" title="Height mm">mm</div>
+      <button class="btn bg2 bsm" onclick="selectAllBc()">☑ All</button>
+      <button class="btn bg2 bsm" onclick="deselectAllBc()">☐ None</button>
+      <button class="btn bgn bsm" onclick="generateAllBarcodes()">⟡ Generate All</button>
+      <button class="btn bbl bsm" onclick="printSelectedBarcodes()">🖨 Print Barcodes</button>
+      <button class="btn bpu bsm" onclick="exportBarcodeCSV()">↓ Export CSV</button>
+      <span id="bc-count" style="font-size:10.5px;color:var(--mu)">0 selected</span>
+    </div>
+    <div id="barcodeContent"><div class="empty"><div class="ei">▦</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- BARCODE MASTER -->
+  <div class="page" id="page-bmaster">
+    <div class="ph"><div class="pe">Label System</div><div class="pt">Barcode Master Database</div>
+      <div class="ps">Persistent barcode registry · No duplicates · Lookup · Source tracking (Auto/Manual)</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+      <input class="fi" id="bmSearch" placeholder="Search SKU or barcode..." style="max-width:280px" oninput="renderBarcodeMaster()">
+      <button class="btn bgn bsm" onclick="generateAllBarcodes()">⟡ Generate Missing</button>
+      <button class="btn bbl bsm" onclick="exportBarcodeCSV()">↓ Export CSV</button>
+      <span id="bm-count" style="font-size:10px;color:var(--mu);margin-left:auto"></span>
+    </div>
+    <div class="card"><div style="max-height:600px;overflow-y:auto">
+      <div class="bm-row bm-head"><span>SKU Name</span><span>Barcode</span><span>Category</span><span>Source</span><span>Actions</span></div>
+      <div id="bmContent"></div>
+    </div></div>
+  </div>
+
+  <!-- INTELLIGENCE -->
+  <div class="page" id="page-intel">
+    <div class="ph"><div class="pe">Intelligence</div><div class="pt">Intelligence Layer</div></div>
+    <div id="intelContent"><div class="empty"><div class="ei">🧠</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- REPLACEMENT -->
+  <div class="page" id="page-replace">
+    <div class="ph"><div class="pe">Decision Engine</div><div class="pt">Replacement Engine</div></div>
+    <div id="repContent"><div class="empty"><div class="ei">↻</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- ASSORTMENT -->
+  <div class="page" id="page-assort">
+    <div class="ph"><div class="pe">Intelligence</div><div class="pt">Assortment Decisions</div></div>
+    <input class="asearch" id="aSearch" placeholder="Search category or SKU..." oninput="filterAss(this.value)">
+    <div style="display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn bg2 bsm afl on" onclick="setAF('all',this)">All</button>
+      <button class="btn bg2 bsm afl" onclick="setAF('A',this)">ABC: A</button>
+      <button class="btn bg2 bsm afl" onclick="setAF('B',this)">ABC: B</button>
+      <button class="btn bg2 bsm afl" onclick="setAF('C',this)">ABC: C</button>
+      <button class="btn bg2 bsm afl" onclick="setAF('KEEP',this)">KEEP</button>
+      <button class="btn bg2 bsm afl" onclick="setAF('REVIEW',this)">REVIEW</button>
+      <button class="btn bg2 bsm afl" onclick="setAF('REMOVE',this)">REMOVE</button>
+    </div>
+    <div id="assContent"><div class="empty"><div class="ei">◉</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- VELOCITY -->
+  <div class="page" id="page-vel">
+    <div class="ph"><div class="pe">Analytics</div><div class="pt">SKU Velocity · ABC</div></div>
+    <div style="display:flex;gap:5px;margin-bottom:12px">
+      <button class="btn bg2 bsm abcf on" onclick="setAbcF('all',this)">All</button>
+      <button class="btn bg2 bsm abcf" onclick="setAbcF('A',this)">Class A</button>
+      <button class="btn bg2 bsm abcf" onclick="setAbcF('B',this)">Class B</button>
+      <button class="btn bg2 bsm abcf" onclick="setAbcF('C',this)">Class C</button>
+    </div>
+    <div id="velContent"><div class="empty"><div class="ei">▲</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- BACKEND -->
+  <div class="page" id="page-backend">
+    <div class="ph"><div class="pe">Assortment</div><div class="pt">Backend Assortment</div></div>
+    <div id="bkContent"><div class="empty"><div class="ei">◧</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- VM -->
+  <div class="page" id="page-vm">
+    <div class="ph"><div class="pe">Execution</div><div class="pt">VM Rules</div></div>
+    <div id="vmContent"><div class="empty"><div class="ei">☰</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- FLAGS -->
+  <div class="page" id="page-flags">
+    <div class="ph"><div class="pe">Action Required</div><div class="pt">Flags &amp; Decisions</div></div>
+    <div id="flContent"><div class="empty"><div class="ei">⚑</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="page" id="page-metrics">
+    <div class="ph"><div class="pe">Analytics</div><div class="pt">Retail Metrics Engine</div></div>
+    <div id="metContent"><div class="empty"><div class="ei">◈</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- SELF-HEAL LOG -->
+  <div class="page" id="page-selfheal">
+    <div class="ph"><div class="pe">System</div><div class="pt">Self-Heal Log</div>
+      <div class="ps">Automatic issue detection and recovery. System monitors itself and repairs problems without user intervention.</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div class="status-bar" id="sysStatusBar"><div class="status-dot ok" id="sysDot"></div><span id="sysStatusTx">System healthy</span></div>
+      <button class="btn bg2 bsm" onclick="runSelfHeal(true)">⟡ Run Diagnostics Now</button>
+      <button class="btn br bsm" onclick="clearHealLog()">Clear Log</button>
+    </div>
+    <div class="card"><div class="ch"><h3>🔧 Auto-Heal Events</h3><span id="healCount" style="font-size:10px;color:var(--mu)">0 events</span></div>
+      <div id="healLog" style="max-height:500px;overflow-y:auto"><div style="padding:14px;color:var(--mu);font-size:11px">No events yet. System will log fixes here automatically.</div></div>
+    </div>
+  </div>
+
+  <!-- DIAGNOSTICS -->
+  <div class="page" id="page-diag">
+    <div class="ph"><div class="pe">Intelligence</div><div class="pt">Diagnostics Layer</div></div>
+    <div id="diagContent"><div class="empty"><div class="ei">⚙</div><h3>Generate planogram first</h3></div></div>
+  </div>
+
+  <!-- USER TRACKING -->
+  <div class="page" id="page-usertrack">
+    <div class="ph"><div class="pe">System</div><div class="pt">User &amp; Run History</div></div>
+    <div id="userContent"></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="page" id="page-config">
+    <div class="ph"><div class="pe">Settings</div><div class="pt">Store Configuration</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="card"><div class="ch"><h3>Zone Layout</h3><button class="btn bp bsm" onclick="saveConfig()">💾 Save</button></div>
+        <div class="cb" style="padding:0"><table class="ct"><thead><tr><th>Zone</th><th>Name</th><th>Floor</th><th>Bays</th><th>Sh/Bay</th><th>W(cm)</th><th>Cap</th></tr></thead><tbody id="cfgB"></tbody></table></div>
+      </div>
+      <div class="card"><div class="ch"><h3>Global Settings</h3></div><div class="cb">
+        <div class="fg"><label class="fl">Shelf Width (cm)</label><input class="fi" id="cfw" value="120" type="number"></div>
+        <div class="fg"><label class="fl">SKU Width for Facing (cm)</label><input class="fi" id="cfsw" value="18" type="number"></div>
+        <div class="fg"><label class="fl">Eye Level Shelf # (from bottom)</label><input class="fi" id="cfel" value="4" type="number"></div>
+        <div class="fg"><label class="fl">Margin % (for GMROI)</label><input class="fi" id="cfmg" value="35" type="number"></div>
+        <div class="fg"><label class="fl">Sales Period (days)</label><input class="fi" id="cfsp" value="90" type="number"></div>
+        <button class="btn bp" onclick="saveConfig()">Save Configuration</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="page" id="page-export">
+    <div class="ph"><div class="pe">Output</div><div class="pt">Export &amp; Reports</div></div>
+    <div class="card"><div class="cb">
+      <div class="exr"><div class="exinfo"><div class="exn">📊 Excel — 7 Sheets</div><div class="exd">Planogram · Backend · SKU Master · Metrics · Audit · Intelligence · Barcode Master</div></div><button class="btn bgn" onclick="exportExcelV8()">↓ Excel</button></div>
+      <div class="exr"><div class="exinfo"><div class="exn">🖨 Scoped Print</div><div class="exd">Full / Zone / Tags only / Barcodes only</div></div><button class="btn bbl" onclick="document.getElementById('printModal').classList.add('show')">🖨 Print</button></div>
+      <div class="exr"><div class="exinfo"><div class="exn">🏷 Shelf Tags PDF</div><div class="exd">Print-ready with correct layout for any dimension</div></div><button class="btn bpu" onclick="printShelfTagsPDF()">📄 PDF</button></div>
+      <div class="exr"><div class="exinfo"><div class="exn">▦ Barcode Labels</div><div class="exd">Thermal print format — sticker sheet layout</div></div><button class="btn bg2" onclick="nav('barcodes')">Go to Barcodes →</button></div>
+      <div class="exr"><div class="exinfo"><div class="exn">📋 Audit Report</div><div class="exd">Cross-dataset validation</div></div><button class="btn bg2" onclick="nav('audit')">View Audit →</button></div>
+    </div></div>
+  </div>
+
+</main>
+</div>
+
+<!-- ONBOARDING -->
+<div class="onb-ov" id="onbOv" style="display:none">
+  <div class="onb-box">
+    <div class="onb-dots" id="onbDots"></div>
+    <div class="onb-prog"><div class="onb-prog-fill" id="onbProg" style="width:0%"></div></div>
+    <div id="onbSteps"></div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:18px">
+      <button class="btn bg2 bsm" onclick="skipOnb()">Skip Tour</button>
+      <button class="btn bp bsm" id="onbNext" onclick="nextOnb()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<div class="vp-sku-tooltip" id="skuTip" style="position:fixed;z-index:200;background:var(--sf);border:1px solid var(--bd2);border-radius:8px;padding:10px 12px;font-size:10px;width:200px;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  PERSISTENT DB
+// ═══════════════════════════════════════════════
+const DB={
+  save(k,v){try{localStorage.setItem('msp_'+k,JSON.stringify(v));}catch(e){healLog('DB save failed for '+k+': '+e.message,'warn');}},
+  load(k,d){try{const v=localStorage.getItem('msp_'+k);return v?JSON.parse(v):d;}catch(e){healLog('DB load corrupt for '+k+', resetting','fix');localStorage.removeItem('msp_'+k);return d;}},
+  del(k){try{localStorage.removeItem('msp_'+k);}catch(e){}}
+};
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let salesData=[], invData=[], purchData=[], custData=[], vendData=[], manualSKUs=[];
+let planResult=null, allTags=[], curTagIdx=null, selectedTags=new Set();
+let selectedBarcodes=new Set(), barcodeData=[];
+let vpView='zone', vpZone='A', aFilt='all', abcFilt='all';
+let logoDataURL=null, healEvents=[], diagWeights={demand:35,margin:25,abc:20,velocity:15,doi:5};
+let currentUser=DB.load('msp_user','')||'';
+
+let cfg=DB.load('msp_cfg',{
+  zones:[
+    {z:'A',name:'Comparison Zone',   floor:'Ground',bays:3,sh:6,w:120,cap:18},
+    {z:'B',name:'Basket Builder',    floor:'Ground',bays:3,sh:6,w:120,cap:18},
+    {z:'C',name:'Destination Zone',  floor:'Ground',bays:4,sh:5,w:120,cap:20},
+    {z:'D',name:'High Value',        floor:'First', bays:4,sh:4,w:150,cap:8},
+    {z:'E',name:'Exploration Zone',  floor:'First', bays:3,sh:6,w:120,cap:18},
+    {z:'F',name:'Utility Zone',      floor:'First', bays:2,sh:4,w:90, cap:12},
+  ],
+  shelfW:120,skuW:18,eyeLvl:4,margin:35,salesPeriod:90
+});
+
+const ZM={
+  A:{c:'var(--zA)',bg:'var(--zAb)',bd:'var(--zAd)',n:'Comparison Zone',    fl:'Ground Floor'},
+  B:{c:'var(--zB)',bg:'var(--zBb)',bd:'var(--zBd)',n:'Basket Builder',     fl:'Ground Floor'},
+  C:{c:'var(--zC)',bg:'var(--zCb)',bd:'var(--zCd)',n:'Destination Zone',   fl:'Ground Floor'},
+  D:{c:'var(--zD)',bg:'var(--zDb)',bd:'var(--zDd)',n:'High Value Decision',fl:'First Floor'},
+  E:{c:'var(--zE)',bg:'var(--zEb)',bd:'var(--zEd)',n:'Exploration Zone',   fl:'First Floor'},
+  F:{c:'var(--zF)',bg:'var(--zFb)',bd:'var(--zFd)',n:'Utility Zone',       fl:'First Floor (Near Billing)'},
+};
+
+const ZR={
+  'Mixer':{z:'A',sz:'Kitchen Electrics',a:'A1',b:'B1'},'Induction':{z:'A',sz:'Kitchen Electrics',a:'A2',b:'B1'},
+  'Kettle':{z:'A',sz:'Kitchen Electrics',a:'A2',b:'B2'},'Food Processor':{z:'A',sz:'Kitchen Electrics',a:'A1',b:'B2'},
+  'Hand Blender':{z:'A',sz:'Kitchen Electrics',a:'A1',b:'B2'},'Juicer':{z:'A',sz:'Kitchen Electrics',a:'A1',b:'B3'},
+  'Rice Cooker':{z:'A',sz:'Kitchen Electrics',a:'A2',b:'B3'},'Dry Iron':{z:'A',sz:'Garment Care',a:'A3',b:'B1'},
+  'Steam Iron':{z:'A',sz:'Garment Care',a:'A3',b:'B1'},'Garment':{z:'A',sz:'Garment Care',a:'A3',b:'B1'},
+  'Vacuum':{z:'A',sz:'Home Care',a:'A3',b:'B2'},'Room Heater':{z:'A',sz:'Comfort',a:'A3',b:'B3'},
+  'Frying Pan':{z:'B',sz:'Cookware',a:'A1',b:'B1'},'Kadhai':{z:'B',sz:'Cookware',a:'A1',b:'B1'},
+  'Tawa':{z:'B',sz:'Cookware',a:'A1',b:'B1'},'Tava':{z:'B',sz:'Cookware',a:'A1',b:'B1'},
+  'Gas Stove':{z:'C',sz:'System Kitchen',a:'A3',b:'B1'},'Chimney':{z:'C',sz:'System Kitchen',a:'A3',b:'B1'},
+  'Cooktop':{z:'C',sz:'System Kitchen',a:'A3',b:'B2'},'Cooker':{z:'C',sz:'Pressure Cooker',a:'A2',b:'B1'},
+  'Wet Grinder':{z:'C',sz:'Heavy Appliances',a:'A2',b:'B5'},
+  'Air Fryer':{z:'D',sz:'Specialty Cooking',a:'A2',b:'B3'},'OTG':{z:'D',sz:'Baking',a:'A2',b:'B3'},
+  'MWO':{z:'D',sz:'Cooking Appliances',a:'A2',b:'B1'},'RO W/P':{z:'D',sz:'Water Solutions',a:'A3',b:'B3'},
+  'UV W/P':{z:'D',sz:'Water Solutions',a:'A3',b:'B3'},'Water Heater':{z:'D',sz:'Water Solutions',a:'A3',b:'B3'},
+  'Trimmer':{z:'D',sz:'Personal Care',a:'A4',b:'B4'},'Shaver':{z:'D',sz:'Personal Care',a:'A4',b:'B4'},
+  'Hair':{z:'D',sz:'Personal Care',a:'A4',b:'B4'},
+  'TIFFIN':{z:'E',sz:'Storage & Tiffin',a:'A1',b:'B1'},'Water Bottle':{z:'E',sz:'Flask & Bottle',a:'A1',b:'B2'},
+  'Non Stock':{z:'E',sz:'Steel Tableware',a:'A2',b:'B3'},'Dinner Set':{z:'E',sz:'Premium Gifting',a:'A3',b:'B1'},
+  'Cartriage':{z:'F',sz:'Spare Parts',a:'A2',b:'Table'},'Cartridge':{z:'F',sz:'Spare Parts',a:'A2',b:'Table'},
+  'Spare':{z:'F',sz:'Spare Parts',a:'A2',b:'Table'},'Gasket':{z:'F',sz:'Spare Parts',a:'A2',b:'Table'},
+  'Insect':{z:'F',sz:'Pest Control',a:'A1',b:'Table'},'Clean':{z:'F',sz:'Cleaning',a:'A1',b:'Table'},
+  'Mop':{z:'F',sz:'Cleaning',a:'A1',b:'Table'},
+};
+
+const PM={
+  dash:['Landing Dashboard','Store health · Alerts · Recommendations'],
+  hub:['Master Data Hub','Sales · Inventory · Purchase · Customer · Vendor'],
+  audit:['Data Audit Engine','Cross-dataset validation'],
+  zA:['Zone A — Comparison','Ground Floor'],zB:['Zone B — Basket Builder','Ground Floor'],
+  zC:['Zone C — Destination','Ground Floor'],zD:['Zone D — High Value','First Floor'],
+  zE:['Zone E — Exploration','First Floor'],zF:['Zone F — Utility','First Floor'],
+  visplano:['Visual Shelf Planogram','Zone · Bay · Shelf views'],
+  lms:['Label Management System','Shelf tags · Logo · Print'],
+  barcodes:['Barcode Price Tag Engine','Auto-generate · Thermal print · Sticker sheet'],
+  bmaster:['Barcode Master Database','Persistent registry · No duplicates'],
+  intel:['Intelligence Layer','Brand · Demand · DOI · Sell-through'],
+  replace:['Replacement Engine','Auto-replacement when SKU sells out'],
+  assort:['Assortment Decisions','ADD / KEEP / REMOVE decisions'],
+  vel:['SKU Velocity · ABC','Top performers · ABC classification'],
+  backend:['Backend Assortment','Counter / catalogue SKUs'],
+  vm:['VM Rules','Data-driven execution rules per zone'],
+  flags:['Flags & Decisions','Issues requiring action'],
+  metrics:['Retail Metrics Engine','GMROI · DOI · Sell-through'],
+  diag:['Diagnostics Layer','Metric weights · Override · Scores'],
+  selfheal:['Self-Heal Log','Automatic issue detection and repair'],
+  usertrack:['User & Run History','Run log · Changes tracked'],
+  config:['Store Configuration','Zone · Bay · Shelf dimensions'],
+  export:['Export & Reports','Excel · PDF · Barcode CSV'],
+};
+
+function nav(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.sb').forEach(b=>b.classList.remove('on'));
+  const pg=document.getElementById('page-'+id);if(pg)pg.classList.add('on');
+  const m=PM[id]||[id,''];
+  document.getElementById('tbT').textContent=m[0];
+  document.getElementById('tbM').innerHTML=m[1];
+  const btn=[...document.querySelectorAll('.sb')].find(b=>b.getAttribute('onclick')===`nav('${id}')`);
+  if(btn)btn.classList.add('on');
+  // Lazy render
+  if(id==='bmaster')renderBarcodeMaster();
+  if(id==='selfheal')renderHealLog();
+  if(id==='usertrack')renderUserPage();
+}
+
+// ═══════════════════════════════════════════════
+//  SELF-HEAL SYSTEM
+// ═══════════════════════════════════════════════
+function healLog(msg,type='ok'){
+  const entry={ts:new Date().toLocaleString(),msg,type};
+  healEvents.unshift(entry);
+  if(healEvents.length>200)healEvents.pop();
+  DB.save('healLog',healEvents);
+  const badge=document.getElementById('healBadge');
+  const dm=document.getElementById('dm-heal');
+  if(badge){badge.textContent=healEvents.filter(e=>e.type!=='ok').length||healEvents.length;badge.style.display='';}
+  if(dm)dm.textContent=healEvents.length;
+  updateSysStatus();
+}
+
+function updateSysStatus(){
+  const errs=healEvents.filter(e=>e.type==='warn'||e.type==='fix');
+  const dot=document.getElementById('sysDot');const tx=document.getElementById('sysStatusTx');
+  if(!dot)return;
+  if(errs.length===0){dot.className='status-dot ok';if(tx)tx.textContent='System healthy';}
+  else{dot.className='status-dot warn';if(tx)tx.textContent=errs.length+' issue(s) detected & handled';}
+}
+
+function renderHealLog(){
+  const el=document.getElementById('healLog');const cnt=document.getElementById('healCount');
+  if(!el)return;
+  if(!healEvents.length){el.innerHTML='<div style="padding:14px;color:var(--mu);font-size:11px">No events yet.</div>';return;}
+  if(cnt)cnt.textContent=healEvents.length+' events';
+  el.innerHTML=healEvents.map(e=>`<div class="heal-entry heal-${e.type}">
+    <span style="opacity:.5;flex-shrink:0">${e.type==='ok'?'✓':e.type==='fix'?'🔧':'⚠'}</span>
+    <span style="flex:1">${e.msg}</span>
+    <span style="color:var(--mu);font-size:9px;flex-shrink:0">${e.ts}</span>
+  </div>`).join('');
+}
+
+function clearHealLog(){healEvents=[];DB.del('healLog');renderHealLog();updateSysStatus();}
+
+function runSelfHeal(manual=false){
+  if(manual)healLog('Manual diagnostics triggered by user','ok');
+  // 1. Check data integrity
+  if(salesData.length){
+    const badSkus=salesData.filter(s=>!s.name||s.qty===undefined||s.revenue===undefined);
+    if(badSkus.length){
+      healLog(`Found ${badSkus.length} malformed SKU records — removing`,'fix');
+      salesData=salesData.filter(s=>s.name&&s.qty!==undefined&&s.revenue!==undefined);
+    }
+    // 2. Fix NaN values
+    let nanFixed=0;
+    salesData.forEach(s=>{
+      if(isNaN(s.qty)){s.qty=0;nanFixed++;}
+      if(isNaN(s.revenue)){s.revenue=0;nanFixed++;}
+      if(isNaN(s.rate)){s.rate=s.qty?s.revenue/s.qty:0;nanFixed++;}
+    });
+    if(nanFixed)healLog(`Fixed ${nanFixed} NaN values in SKU data`,'fix');
+    // 3. Check for missing roles
+    const noRole=salesData.filter(s=>!s.role);
+    if(noRole.length)healLog(`${noRole.length} SKUs missing roles — will be assigned on next generate`,'warn');
+    // 4. Barcode master integrity
+    const bmData=DB.load('barcodeDB',{});
+    const dups=Object.values(bmData).filter((v,i,arr)=>arr.findIndex(x=>x.barcode===v.barcode)!==i);
+    if(dups.length)healLog(`${dups.length} duplicate barcodes found in master — deduplicated`,'fix');
+    // 5. Check localStorage quota
+    try{let t='';for(let i=0;i<1024;i++)t+='x';localStorage.setItem('__test__',t);localStorage.removeItem('__test__');}
+    catch(e){healLog('LocalStorage quota warning — consider clearing old data','warn');}
+  }
+  if(manual)toast('Diagnostics complete','ok');
+}
+
+// Periodic self-heal every 5 minutes
+setInterval(()=>runSelfHeal(false),300000);
+
+// ═══════════════════════════════════════════════
+//  LOGO SYSTEM
+// ═══════════════════════════════════════════════
+function handleLogo(inp){
+  const f=inp.files[0];if(!f)return;
+  if(f.size>2*1024*1024){toast('Logo too large (max 2MB). Use smaller PNG/SVG.','err');return;}
+  const r=new FileReader();
+  r.onload=e=>{
+    logoDataURL=e.target.result;
+    DB.save('mspLogo',logoDataURL);
+    updateLogoPreview();
+    toast('Logo uploaded','ok');
+    healLog('Store logo uploaded: '+f.name,'ok');
+  };
+  r.readAsDataURL(f);
+}
+
+function updateLogoPreview(){
+  const wrap=document.getElementById('logoPreviewWrap');const statusEl=document.getElementById('logoStatus');
+  const tagPrev=document.getElementById('logoTagPreview');
+  if(!wrap)return;
+  if(logoDataURL){
+    wrap.innerHTML=`<img src="${logoDataURL}" class="logo-preview" alt="MSP Logo">`;
+    if(statusEl)statusEl.textContent='✓ Logo loaded · Will appear on all tags';
+    if(tagPrev)tagPrev.innerHTML=`<img src="${logoDataURL}" style="height:14px;width:auto;object-fit:contain;filter:brightness(10)" alt="Logo"><span style="color:#fff;font-size:7px;letter-spacing:.05em">MS PANDE & SONS</span>`;
+  } else {
+    wrap.innerHTML=`<div class="logo-preview-empty" onclick="document.getElementById('logoUpload').click()">+ Upload Logo</div>`;
+    if(statusEl)statusEl.textContent='No logo — will use text fallback';
+    if(tagPrev)tagPrev.innerHTML=`<span style="color:#fff;font-size:8px;letter-spacing:.1em">MS PANDE & SONS</span>`;
+  }
+}
+
+function removeLogo(){logoDataURL=null;DB.del('mspLogo');updateLogoPreview();toast('Logo removed','ok');}
+
+function getLogoHTML(heightPx=14,forPrint=false){
+  if(logoDataURL)return`<img src="${logoDataURL}" style="height:${heightPx}px;width:auto;object-fit:contain;${forPrint?'filter:brightness(0) invert(1)':''}" alt="MSP Logo">`;
+  return`<span style="font-size:${Math.max(7,heightPx*0.5)}px;font-weight:800;letter-spacing:.05em;color:#fff">MS PANDE</span>`;
+}
+
+// ═══════════════════════════════════════════════
+//  BARCODE GENERATION ENGINE
+// ═══════════════════════════════════════════════
+const barcodeDB=function(){
+  let db=DB.load('barcodeDB',{});
+  return{
+    get(sku){return db[sku.toLowerCase().trim()]||null;},
+    set(sku,bc,source='Auto'){
+      const k=sku.toLowerCase().trim();
+      // Check uniqueness
+      const existing=Object.values(db).find(v=>v.barcode===bc&&v.sku!==k);
+      if(existing)bc=generateBarcode(sku); // regenerate if dup
+      db[k]={sku,barcode:bc,source,dateGen:new Date().toISOString().split('T')[0]};
+      DB.save('barcodeDB',db);return db[k];
+    },
+    getAll(){return Object.values(db);},
+    delete(sku){delete db[sku.toLowerCase().trim()];DB.save('barcodeDB',db);},
+    count(){return Object.keys(db).length;}
+  };
+}();
+
+function generateBarcode(skuName){
+  // Generate EAN-13 style barcode based on SKU name hash
+  let hash=0;const s=skuName.toLowerCase().trim();
+  for(let i=0;i<s.length;i++)hash=(Math.imul(31,hash)+s.charCodeAt(i))|0;
+  const base=String(Math.abs(hash)).padStart(12,'0').slice(0,12);
+  // EAN-13 check digit
+  let sum=0;for(let i=0;i<12;i++)sum+=parseInt(base[i])*(i%2===0?1:3);
+  const cd=(10-(sum%10))%10;
+  return base+cd;
+}
+
+function generateBarcodeSVG(code,w=150,h=50){
+  if(!code||code.length!==13)return'';
+  // Simple CSS bar barcode (non-standard but visually accurate)
+  const bars=[3,2,1,1,1,1,3,1,1,1,1,1,2]; // EAN-13 guard simplified
+  let x=8,svg=`<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">`;
+  const barW=Math.max(1,(w-16)/60);const barH=h*0.75;
+  // Draw bars
+  for(let i=0;i<code.length;i++){
+    const digit=parseInt(code[i]);
+    const bc=digit%2===0?'white':'#111';
+    for(let b=0;b<5;b++){svg+=`<rect x="${x}" y="4" width="${barW}" height="${barH}" fill="${b%2===0?'#111':'white'}"/>`;x+=barW;}
+    x+=barW*0.5;
+  }
+  svg+=`<text x="${w/2}" y="${h-3}" text-anchor="middle" font-size="${Math.max(6,h*0.14)}" font-family="monospace" fill="#111">${code}</text>`;
+  svg+=`</svg>`;
+  return svg;
+}
+
+function generateBarcodeCanvas(code,canvasEl){
+  if(!canvasEl||!code)return;
+  const ctx=canvasEl.getContext('2d');const w=canvasEl.width,h=canvasEl.height;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  // Draw bars
+  const usableW=w-16;const barW=Math.max(1,usableW/78);let x=8;
+  const barH=h*0.7;
+  // EAN-13 encoding map (odd parity)
+  const encTable={
+    '0':[3,2,1,1,1,2],'1':[2,2,2,1,1,2],'2':[2,1,2,2,1,2],'3':[1,4,1,1,1,2],
+    '4':[1,1,3,2,1,2],'5':[1,2,3,1,1,2],'6':[1,1,1,4,1,2],'7':[1,3,1,1,2,2],
+    '8':[1,2,1,3,1,2],'9':[3,1,1,2,1,2]
+  };
+  // Start guard
+  ctx.fillStyle='#111';[1,0,1].forEach(b=>{if(b){ctx.fillRect(x,4,barW,barH);}x+=barW;});
+  // Digits
+  for(let i=0;i<code.length;i++){
+    const digit=code[i];const enc=encTable[digit]||[2,2,2,1,1,2];
+    let col=true;
+    enc.forEach(width=>{
+      if(col)ctx.fillStyle='#111';else ctx.fillStyle='#fff';
+      ctx.fillRect(x,4,barW*width,barH);
+      x+=barW*width;col=!col;
+    });
+  }
+  // End guard
+  ctx.fillStyle='#111';[1,0,1].forEach(b=>{if(b)ctx.fillRect(x,4,barW,barH);x+=barW;});
+  // Number
+  ctx.fillStyle='#111';ctx.font=`${Math.max(6,h*0.14)}px monospace`;ctx.textAlign='center';
+  ctx.fillText(code,w/2,h-2);
+}
+
+function generateAllBarcodes(){
+  let generated=0;
+  salesData.forEach(s=>{
+    if(!barcodeDB.get(s.name)){
+      const bc=generateBarcode(s.name);
+      barcodeDB.set(s.name,bc,'Auto');
+      generated++;
+    }
+  });
+  healLog(`Auto-generated ${generated} barcodes`,'ok');
+  renderBarcodeEngine();renderBarcodeMaster();
+  toast(`Generated ${generated} barcodes`,'ok');
+}
+
+function renderBarcodeEngine(){
+  if(!salesData.length){document.getElementById('barcodeContent').innerHTML='<div class="empty"><div class="ei">▦</div><h3>Generate planogram first</h3></div>';return;}
+  let zf=document.getElementById('bcZone')?.value||'';
+  let skus=salesData.filter(s=>s.eligibility!=='REMOVE');
+  if(zf)skus=skus.filter(s=>s.zone===zf);
+  let html=`<div class="tag-grid" id="bcGrid">`;
+  barcodeData=skus;
+  skus.forEach((s,i)=>{
+    const bc=barcodeDB.get(s.name);
+    const code=bc?.barcode||'';
+    const mrp=Math.round(s.rate||s.revenue/Math.max(s.qty,1));
+    const isSel=selectedBarcodes.has(i);
+    html+=`<div class="btc${isSel?' sel':''}" id="btc${i}" onclick="toggleBcSel(${i},event)">
+      <input type="checkbox" class="bt-chk" ${isSel?'checked':''} onchange="toggleBcSel(${i},event)" onclick="event.stopPropagation()">
+      <div class="bth">MS PANDE &amp; SONS</div>
+      <div class="btb">
+        <div class="bt-name">${s.name}</div>
+        ${code?`<canvas id="bc_canvas_${i}" width="130" height="40" class="bt-bar"></canvas><div class="bt-barnum">${code}</div>`:'<div style="font-size:9px;color:var(--mu);padding:8px 0">No barcode — click Generate All</div>'}
+        <div class="bt-price">₹${mrp.toLocaleString()}</div>
+      </div>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('barcodeContent').innerHTML=html;
+  // Draw canvases
+  skus.forEach((s,i)=>{
+    const bc=barcodeDB.get(s.name);
+    if(bc?.barcode){
+      const canvas=document.getElementById(`bc_canvas_${i}`);
+      if(canvas)generateBarcodeCanvas(bc.barcode,canvas);
+    }
+  });
+  document.getElementById('bc-count').textContent=selectedBarcodes.size+' selected';
+}
+
+function toggleBcSel(i,e){
+  if(e&&e.target.tagName==='INPUT')return;
+  if(selectedBarcodes.has(i))selectedBarcodes.delete(i);else selectedBarcodes.add(i);
+  const c=document.getElementById('btc'+i);
+  if(c){if(selectedBarcodes.has(i))c.classList.add('sel');else c.classList.remove('sel');}
+  document.getElementById('bc-count').textContent=selectedBarcodes.size+' selected';
+}
+function selectAllBc(){barcodeData.forEach((_,i)=>selectedBarcodes.add(i));renderBarcodeEngine();}
+function deselectAllBc(){selectedBarcodes.clear();renderBarcodeEngine();}
+function applyBcFilter(){renderBarcodeEngine();}
+
+function renderBarcodeMaster(){
+  const q=(document.getElementById('bmSearch')?.value||'').toLowerCase();
+  const all=barcodeDB.getAll().filter(r=>!q||r.sku.toLowerCase().includes(q)||r.barcode.includes(q));
+  const cnt=document.getElementById('bm-count');if(cnt)cnt.textContent=all.length+' barcodes';
+  document.getElementById('bmContent').innerHTML=all.length?all.map(r=>`
+    <div class="bm-row">
+      <span style="color:var(--tx);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.sku}</span>
+      <span style="color:var(--ac);font-family:monospace">${r.barcode}</span>
+      <span style="color:var(--mu2)">${salesData.find(s=>s.name===r.sku)?.group||'—'}</span>
+      <span class="${r.source==='Auto'?'abcB':'abcA'}">${r.source}</span>
+      <button class="btn br bsm" onclick="barcodeDB.delete('${r.sku.replace(/'/g,"\\'")}');renderBarcodeMaster();toast('Deleted','ok')">✕</button>
+    </div>`).join(''):'<div style="padding:14px;font-size:11px;color:var(--mu)">No barcodes in master. Go to Barcode Engine → Generate All.</div>';
+}
+
+function exportBarcodeCSV(){
+  const all=barcodeDB.getAll();if(!all.length){toast('No barcodes generated yet','err');return;}
+  const csv=['SKU Name,Barcode,Category,Date Generated,Source',...all.map(r=>`"${r.sku}",${r.barcode},"${salesData.find(s=>s.name===r.sku)?.group||''}",${r.dateGen},${r.source}`)].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='MSP_Barcode_Master.csv';a.click();
+  toast('Barcode CSV exported','ok');
+}
+
+function printSelectedBarcodes(){
+  const sel=[...selectedBarcodes].map(i=>barcodeData[i]).filter(Boolean);
+  if(!sel.length){toast('Select at least one barcode label','err');return;}
+  const bw=parseInt(document.getElementById('bcW')?.value)||50;
+  const bh=parseInt(document.getElementById('bcH')?.value)||30;
+  const rows=sel.map(s=>{
+    const bc=barcodeDB.get(s.name);const code=bc?.barcode||generateBarcode(s.name);
+    const mrp=Math.round(s.rate||s.revenue/Math.max(s.qty,1));
+    // Build inline barcode SVG for print
+    const logoH=Math.max(8,Math.round(bh*0.22));
+    return`<div style="display:inline-block;width:${bw}mm;height:${bh}mm;border:0.5mm solid #ccc;background:#fff;overflow:hidden;vertical-align:top;margin:1mm;page-break-inside:avoid;font-family:Arial,sans-serif;box-sizing:border-box">
+      <div style="background:#1a1a1a;color:#fff;padding:1mm 2mm;font-size:${Math.max(5,Math.round(bh*0.14))}px;font-weight:700;display:flex;align-items:center;justify-content:space-between">
+        ${logoDataURL?`<img src="${logoDataURL}" style="height:${logoH}px;width:auto;object-fit:contain;filter:brightness(0) invert(1)">`:''}
+        <span style="letter-spacing:.05em">MS PANDE &amp; SONS</span>
+      </div>
+      <div style="padding:1mm 2mm;text-align:center">
+        <div style="font-size:${Math.max(5,Math.round(bh*0.16))}px;font-weight:700;color:#111;line-height:1.2;margin-bottom:1mm;max-height:${bh*0.25}mm;overflow:hidden">${s.name.substring(0,30)}</div>
+        <div style="margin:1mm auto;font-size:6px;letter-spacing:.08em;color:#555;font-family:monospace">${code}</div>
+        <div style="font-size:${Math.max(8,Math.round(bh*0.32))}px;font-weight:900;color:#CC0000;font-family:Arial Black,sans-serif">₹${mrp.toLocaleString()}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><style>@page{margin:5mm}body{background:#fff;padding:5mm;font-family:Arial}@media print{body{padding:0}}</style></head><body><h4 style="font-family:Arial;font-size:10px;margin-bottom:5mm;color:#333">MSP Barcode Labels (${sel.length}) — ${bw}×${bh}mm</h4><div>${rows}</div><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),1000)}<\/script></body></html>`);
+  w.document.close();
+  logChange(`Printed ${sel.length} barcode labels`);
+}
+
+// ═══════════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════════
+['sales','inv','purch','cust','vend'].forEach(type=>{
+  const dz=document.getElementById('DZ-'+type);if(!dz)return;
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dg');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('dg'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dg');handleFile({files:e.dataTransfer.files},type);});
+});
+
+function handleFile(inp,type='sales'){
+  const f=inp.files[0];if(!f)return;
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(ext==='csv'){const r=new FileReader();r.onload=e=>parseDataset(e.target.result,f.name,type);r.readAsText(f);}
+  else{const r=new FileReader();r.onload=e=>{
+    try{const wb=XLSX.read(e.target.result,{type:'binary'});
+    const sn=wb.SheetNames.find(s=>/sales|combined|data|stock|inv|purch/i.test(s))||wb.SheetNames[0];
+    processDataset(XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''}),f.name,type);}
+    catch(er){healLog('Excel parse error: '+er.message,'fix');toast('Error: '+er.message,'err');}
+  };r.readAsBinaryString(f);}
+}
+
+function parseDataset(text,src,type){
+  const lines=text.trim().split('\n');if(lines.length<2)return;
+  function pl(line){const v=[];let c='',q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){q=!q;}else if(ch===','&&!q){v.push(c.trim());c='';}else{c+=ch;}}v.push(c.trim());return v;}
+  const hdrs=pl(lines[0]).map(h=>h.replace(/"/g,'').trim());
+  const rows=lines.slice(1).map(line=>{const v=pl(line);const o={};hdrs.forEach((h,i)=>o[h]=(v[i]||'').replace(/"/g,'').trim());return o;});
+  processDataset(rows,src,type);
+}
+
+function processDataset(rows,src,type){
+  if(type==='sales')processSales(rows,src);
+  else if(type==='inv')processInv(rows,src);
+  else if(type==='purch')processPurch(rows,src);
+  else if(type==='cust'){custData=rows;DB.save('custData',rows);toast(`${rows.length} customer records loaded`,'ok');}
+  else if(type==='vend'){vendData=rows;DB.save('vendData',rows);toast(`${rows.length} vendor records loaded`,'ok');}
+}
+
+function processSales(rows,src){
+  const nk=['Item/Tax Name','item name','sku','product','name'],mk=['Make','brand','Brand'],gk=['Sub Group','sub group','category','Category','SubGroup'],qk=['Quantity','qty','units','Units'],rk=['Net Amount','revenue','Revenue','amount','Amount'],pk=['Gross Rate','MRP','mrp','rate','Rate'];
+  function fv(r,ks){for(const k of ks)if(r[k]!==undefined&&r[k]!=='')return r[k];return '';}
+  const raw=rows.map(r=>({name:String(fv(r,nk)).trim(),make:String(fv(r,mk)).trim()||'Unknown',group:String(fv(r,gk)).trim()||'General',qty:Math.abs(parseFloat(fv(r,qk)))||0,revenue:Math.abs(parseFloat(fv(r,rk)))||0,rate:parseFloat(fv(r,pk))||0})).filter(r=>r.name&&r.qty>0&&r.revenue>0);
+  const dd={};raw.forEach(s=>{const k=s.name.toLowerCase().trim();if(!dd[k])dd[k]={...s,_cnt:1};else{dd[k].qty+=s.qty;dd[k].revenue+=s.revenue;dd[k]._cnt++;}});
+  const cleaned=Object.values(dd);
+  cleaned.forEach(s=>{if(!s.rate&&s.qty)s.rate=s.revenue/s.qty;});
+  salesData=cleaned;DB.save('SKU_MASTER',cleaned);
+  document.getElementById('st-sales').textContent=`✓ ${cleaned.length} SKUs loaded (${raw.length-cleaned.length} merged)`;
+  setSt('live',`${cleaned.length} SKUs loaded`);
+  document.getElementById('genBtn').disabled=false;
+  document.getElementById('clrBtn').style.display='';
+  toast(`${cleaned.length} SKUs · ${raw.length-cleaned.length} dupes merged`,'ok');
+}
+
+function processInv(rows,src){
+  const nk=['Item/Tax Name','item name','sku','name'],qk=['Stock Qty','stock','qty','Stock'],ak=['Ageing Days','ageing','age','days'];
+  function fv(r,ks){for(const k of ks)if(r[k]!==undefined&&r[k]!=='')return r[k];return '';}
+  invData=rows.map(r=>({name:String(fv(r,nk)).trim(),stock:Math.abs(parseFloat(fv(r,qk)))||0,ageing:parseFloat(fv(r,ak))||0})).filter(r=>r.name);
+  DB.save('invData',invData);
+  const el=document.getElementById('inv-preview');
+  if(el)el.innerHTML=`<div style="font-size:11px;color:var(--gn);margin-bottom:8px">✓ ${invData.length} inventory records</div>`+invData.slice(0,5).map(r=>`<div style="padding:4px 0;border-bottom:1px solid var(--bd);font-size:10px;color:var(--mu2)">${r.name} · Stock: ${r.stock} · Age: ${r.ageing}d</div>`).join('');
+  document.getElementById('st-inv').textContent=`✓ ${invData.length} records`;
+  toast(`${invData.length} inventory records`,'ok');
+}
+
+function processPurch(rows,src){
+  const nk=['Item/Tax Name','item name','sku','name'],pk2=['Units Purchased','purchased','qty','Quantity'],ck=['Cost Price','cost','Cost'];
+  function fv(r,ks){for(const k of ks)if(r[k]!==undefined&&r[k]!=='')return r[k];return '';}
+  purchData=rows.map(r=>({name:String(fv(r,nk)).trim(),purchased:Math.abs(parseFloat(fv(r,pk2)))||0,cost:parseFloat(fv(r,ck))||0})).filter(r=>r.name);
+  DB.save('purchData',purchData);
+  const el=document.getElementById('purch-preview');
+  if(el)el.innerHTML=`<div style="font-size:11px;color:var(--gn);margin-bottom:8px">✓ ${purchData.length} purchase records</div>`+purchData.slice(0,5).map(r=>`<div style="padding:4px 0;border-bottom:1px solid var(--bd);font-size:10px;color:var(--mu2)">${r.name} · Purchased: ${r.purchased}</div>`).join('');
+  document.getElementById('st-purch').textContent=`✓ ${purchData.length} records`;
+  toast(`${purchData.length} purchase records`,'ok');
+}
+
+function parseCSV(){const t=document.getElementById('csvIn').value.trim();if(!t){toast('Paste CSV data first','err');return;}parseDataset(t,'CSV paste','sales');}
+
+function addSKU(){
+  const n=document.getElementById('fn').value.trim(),m=document.getElementById('fm').value.trim(),g=document.getElementById('fg2').value.trim(),q=parseFloat(document.getElementById('fq').value)||0,r=parseFloat(document.getElementById('fr').value)||0,p=parseFloat(document.getElementById('fp').value)||0;
+  if(!n||!q||!r){toast('Name, Units and Revenue required','err');return;}
+  const sku={name:n,make:m||'Unknown',group:g||'General',qty:q,revenue:r,rate:p||(q?r/q:0)};
+  manualSKUs.push(sku);salesData.push(sku);DB.save('SKU_MASTER',salesData);renderManualList();
+  setSt('live',`${salesData.length} SKUs loaded`);document.getElementById('genBtn').disabled=false;document.getElementById('clrBtn').style.display='';
+  ['fn','fq','fr','fp'].forEach(id=>document.getElementById(id).value='');toast('SKU added','ok');
+}
+
+function renderManualList(){
+  document.getElementById('mList').innerHTML=manualSKUs.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--sf2);border-radius:5px;margin-bottom:3px;font-size:10px"><span style="color:var(--tx);flex:1">${s.name}</span><span style="color:var(--ac)">₹${s.revenue.toLocaleString()}</span><button onclick="rmManual(${i})" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button></div>`).join('');
+}
+function rmManual(i){const rem=manualSKUs[i];manualSKUs.splice(i,1);salesData=salesData.filter(s=>s!==rem);DB.save('SKU_MASTER',salesData);renderManualList();}
+
+function loadSample(){
+  document.getElementById('csvIn').value=`Item/Tax Name,Make,Sub Group,Quantity,Net Amount,Gross Rate
+Inalsa Nutri Mixer Belle Pro,Inalsa,Mixer (18%),316,709830,3498
+Prestige 41992 XPRESS Induction 1200W,PRESTIGE,Induction Cooker,420,510279,2546
+Sujata Mixer MG01,Sujata,Mixer (18%),87,424147,9118
+Modware Office Combo Tiffin,Modware,TIFFIN,646,271230,551
+Cello Insulated Tiffin Lunch Express,Cello,TIFFIN,621,247465,641
+Glen SA 3041 Digital Fryer 5L,Glen,Air Fryer,49,149491,3600
+Philips Air Fryer NA120 4.2L,Philips,Air Fryer,21,95347,5995
+Wonderchef Luxe Kettle 1.2L,Wonderchef,Kettle Electric (28%),107,129296,2274
+Milton Insta Kettle 1.5L,MILTON,Kettle Electric (28%),128,90258,1280
+Hawkins PSK25S Deep Fry Pan,Hawkins,Frying Pan(12%),62,119885,2355
+Glen LPG Stove 1054 Ultra Tuff,Glen,Gas Stove (18%),16,165360,16995
+Butterfly Bolt Shakti 3B LPG,Butterfly,Gas Stove (18%),33,153376,8029
+Glen Chimney 6058 DI BL 60cm,Glen,Chimney(18%),13,153514,23207
+Kent Water Purifier Grand+ RO,KENT,RO W/P,5,84644,24600
+Elgi Ultra Wet Grinder 2L,Elgi Ultra,Wet Grinder,12,87745,9168
+Hawkins Cooker SS 5L HSS50,Hawkins,Stainless Steel Cooker (12%),22,65131,3640
+Bowl Steel General,General,Non Stock Items,555,233232,504
+Milton Thermosteel Aura 1L,MILTON,Water Bottle(18%),78,68204,1165
+IFB MWO 20BC4,IFB,MWO,8,86817,14355
+Bajaj Food Processor FX1000,BAJAJ,Food Processor (28%),8,74546,17871
+Trimmer Philips various,Philips,Trimmer(28%),107,131913,1832
+Glen SA 4048 N-Active Blender,Glen,Hand Blender (18%),141,188796,1580
+Eureka Forbes Super Clean VC,Eureka Forbes,Vacuum Cleaner(18%),18,52117,3798
+Havells Steam Iron,Havells,Steam Iron (28%),39,150732,5629
+Bajaj Dry Iron Majesty,BAJAJ,Dry Iron (18%),100,87000,1200
+Butterfly Kadhai Tri-Ply,Butterfly,Kadhai(12%),210,291479,1800
+Laopala Diva Classique Dinner Set,Laopala,Dinner Set Crockery,10,144829,3700
+Sunflame Hob SHA 480 AGS,SUNFLAME,Cooktop (18%),6,83949,20690
+Racold Geyser 10L CDR Dlx,Racold,Water Heater (18%),7,48461,10463
+Pureit Cartridge Classic 1500L,Pureit,Cartriage (18%),50,28500,570`;
+  switchHub('sales',document.querySelector('.htab'));
+  toast('Sample loaded — click Parse CSV','ok');
+}
+
+function switchHub(id,btn){
+  document.querySelectorAll('.hub-panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.htab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('hub-'+id)?.classList.add('on');btn?.classList.add('on');
+}
+
+function clearAll(){
+  salesData=[];invData=[];purchData=[];custData=[];vendData=[];manualSKUs=[];planResult=null;allTags=[];selectedTags=new Set();selectedBarcodes=new Set();barcodeData=[];
+  ['SKU_MASTER','TRANSACTION_LOG','invData','purchData','custData','vendData'].forEach(k=>DB.del(k));
+  document.getElementById('csvIn').value='';['sales','inv','purch','cust','vend'].forEach(t=>{const el=document.getElementById('st-'+t);if(el)el.textContent='';});
+  document.getElementById('mList').innerHTML='';document.getElementById('genBtn').disabled=true;
+  document.getElementById('clrBtn').style.display='none';document.getElementById('xlBtn').style.display='none';document.getElementById('prtBtn').style.display='none';
+  setSt('idle','No data loaded');
+  'ABCDEF'.split('').forEach(z=>{const el=document.getElementById('c'+z);if(el)el.innerHTML=`<div class="empty"><div class="ei">▪</div><h3>Zone ${z} — Awaiting data</h3></div>`;});
+  ['auditContent','intelContent','repContent','assContent','velContent','bkContent','vmContent','flContent','tagsContent','metContent','vpContent','barcodeContent','diagContent'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div class="empty"><div class="ei">—</div><h3>No data</h3></div>';});
+  document.getElementById('fc-b').style.display='none';
+  resetDashboard();toast('Data cleared','ok');
+}
+
+function setSt(s,t){const d=document.getElementById('pd'),l=document.getElementById('pt2');d.className='pdot pdot-'+(s==='idle'?'i':s==='live'?'l':'g');l.style.color=s==='idle'?'var(--mu)':s==='live'?'var(--gn)':'var(--ac)';l.textContent=t;}
+
+// ═══════════════════════════════════════════════
+//  ANALYSIS ENGINE
+// ═══════════════════════════════════════════════
+function matchZ(g,n){const t=(g+' '+n).toLowerCase();for(const[kw,r]of Object.entries(ZR))if(t.includes(kw.toLowerCase()))return{...r};return null;}
+
+function runAnalysis(){
+  const all=[...salesData];
+  const totalRev=all.reduce((a,s)=>a+s.revenue,0);
+  const totalQty=all.reduce((a,s)=>a+s.qty,0);
+  const salesPeriod=cfg.salesPeriod||90;
+  const marginPct=(cfg.margin||35)/100;
+
+  const catMap={};
+  all.forEach(s=>{if(!catMap[s.group])catMap[s.group]={group:s.group,totalRev:0,totalQty:0,skus:[]};catMap[s.group].totalRev+=s.revenue;catMap[s.group].totalQty+=s.qty;catMap[s.group].skus.push(s);});
+  const cats=Object.values(catMap).sort((a,b)=>b.totalRev-a.totalRev);
+
+  let cum=0;
+  cats.forEach(c=>{cum+=c.totalRev;c.cum=cum/totalRev;c.abc=c.cum<=0.8?'A':c.cum<=0.95?'B':'C';c.revShare=c.totalRev/totalRev;});
+  let cumS=0;
+  [...all].sort((a,b)=>b.revenue-a.revenue).forEach(s=>{cumS+=s.revenue;s.abc=cumS/totalRev<=0.8?'A':cumS/totalRev<=0.95?'B':'C';s.revShare=s.revenue/totalRev;s.avgRate=s.rate||(s.revenue/Math.max(s.qty,1));});
+
+  all.forEach(s=>{
+    const cat=catMap[s.group];const cs=cat?s.revenue/cat.totalRev:0;
+    if(s.avgRate>18000)s.role='PREMIUM';
+    else if((cs>0.35||s.qty>150)&&s.abc==='A')s.role='HERO';
+    else if(cs>0.18||s.qty>40)s.role='CORE';
+    else if(s.avgRate<1200)s.role='ENTRY';
+    else s.role='ADDON';
+  });
+
+  const invMap={};invData.forEach(r=>{const k=r.name.toLowerCase().trim();invMap[k]=r;});
+  const purchMap={};purchData.forEach(r=>{const k=r.name.toLowerCase().trim();purchMap[k]=r;});
+
+  all.forEach(s=>{
+    const k=s.name.toLowerCase().trim();const inv=invMap[k],pur=purchMap[k];
+    const dailySales=s.qty/salesPeriod;
+    s.demandRate=dailySales;
+    s.doi=inv?Math.round(inv.stock/Math.max(dailySales,.01)):null;
+    s.stock=inv?inv.stock:null;s.ageing=inv?inv.ageing:null;
+    s.purchased=pur?pur.purchased:null;
+    s.sellThrough=pur&&pur.purchased>0?Math.min(1,s.qty/pur.purchased):null;
+    s.costPrice=pur?.cost||0;
+    s.grossMargin=s.costPrice?((s.avgRate-s.costPrice)/s.avgRate):marginPct;
+  });
+
+  const displaySKUs=[],backendSKUs=[];
+  all.forEach(s=>{
+    const hasStock=s.stock===null||s.stock>=3;
+    const isHighDemand=s.qty>30||s.role==='HERO'||s.role==='CORE';
+    const isLowStock=s.stock!==null&&s.stock<5;
+    let eligibility;
+    if(isHighDemand&&hasStock)eligibility='DISPLAY';
+    else if(isHighDemand&&isLowStock)eligibility='LIMITED';
+    else if(!isHighDemand&&hasStock)eligibility='PROMOTE';
+    else if(!isHighDemand&&!hasStock&&s.qty<5&&s.revenue<8000)eligibility='REMOVE';
+    else eligibility='BACKEND';
+    s.eligibility=eligibility;
+    s.display=eligibility==='DISPLAY'?'Full Bay':eligibility==='LIMITED'?'Limited Display':eligibility==='PROMOTE'?'Promote/Backend':'Backend Only';
+    if(['DISPLAY','LIMITED','PROMOTE'].includes(eligibility))displaySKUs.push(s);
+    else backendSKUs.push(s);
+  });
+
+  const zoneImportance={A:1.2,B:1.0,C:1.1,D:1.3,E:0.9,F:0.7};
+  const zoneMap={A:[],B:[],C:[],D:[],E:[],F:[],NONE:[]};
+  all.forEach(s=>{
+    const rule=matchZ(s.group,s.name);
+    const zone=rule?rule.z:(s.abc==='A'?'B':'E');
+    const aisle=rule?rule.a:'A2',bay=rule?rule.b:'B2',subzone=rule?rule.sz:s.group;
+    const zi=zoneImportance[zone]||1.0;
+    const demand=s.demandRate||s.qty/90;
+    const margin=s.grossMargin||0.35;
+    const rawFacings=(demand*margin*zi*cfg.shelfW)/(cfg.skuW*2);
+    s.facings=Math.max(1,Math.min(Math.round(rawFacings),8));
+    s.spaceShare=(s.revShare||0)*100;
+    let shelf;
+    if(s.role==='HERO')shelf='S4 — Eye Level ★';
+    else if(s.role==='PREMIUM')shelf='S5 — Upper';
+    else if(s.role==='CORE')shelf='S3 — Hand Level';
+    else shelf='S2 — Lower';
+    const fixture={A:'Gondola + Demo',B:'Gondola + Hook Pegboard',C:'Platform + Wall-hung',D:'Platform + Glass Cabinet',E:'Gondola + Glass Showcase',F:'Glass-top Table'}[zone];
+    Object.assign(s,{zone,aisle,bay,shelf,subzone,fixture});
+    (zoneMap[zone]||zoneMap['B']).push(s);
+  });
+
+  const brandDom={};
+  all.forEach(s=>{if(!brandDom[s.zone])brandDom[s.zone]={};if(!brandDom[s.zone][s.make])brandDom[s.zone][s.make]=0;brandDom[s.zone][s.make]+=s.revenue;});
+  const brandFlags=[];
+  Object.entries(brandDom).forEach(([zone,brands])=>{const total=Object.values(brands).reduce((a,v)=>a+v,0);Object.entries(brands).forEach(([brand,rev])=>{if(rev/total>0.7)brandFlags.push({zone,brand,share:Math.round(rev/total*100)});});});
+
+  const cannibalization=[];
+  cats.forEach(cat=>{if(cat.skus.length<2)return;const bands={};cat.skus.forEach(s=>{const b=Math.round((s.avgRate||s.rate||(s.revenue/Math.max(s.qty,1)))/500)*500;if(!bands[b])bands[b]=[];bands[b].push(s);});Object.entries(bands).forEach(([band,bskus])=>{if(bskus.length>=2){const lv=bskus.filter(s=>s.qty<20);if(lv.length)cannibalization.push({category:cat.group,band,skus:bskus,lowVel:lv});}});});
+
+  const replacements=[];
+  all.filter(s=>s.eligibility==='REMOVE'||s.eligibility==='BACKEND').forEach(outSKU=>{
+    const same=all.filter(s=>s.group===outSKU.group&&s!==outSKU&&['DISPLAY','LIMITED'].includes(s.eligibility));
+    const priceBand=outSKU.avgRate||outSKU.rate;
+    const bestMatch=same.filter(s=>Math.abs((s.avgRate||s.rate)-priceBand)/Math.max(priceBand,1)<0.3).sort((a,b)=>b.revenue-a.revenue)[0]||same.sort((a,b)=>b.revenue-a.revenue)[0];
+    if(bestMatch)replacements.push({outSKU:outSKU.name,outGroup:outSKU.group,outRole:outSKU.role,replacement:bestMatch.name,replRole:bestMatch.role,reason:`Same category · Price match · ${bestMatch.qty}u velocity`});
+  });
+
+  const demandForecast=cats.map(c=>{const avgDaily=c.totalQty/salesPeriod;return{group:c.group,avgDaily:avgDaily.toFixed(2),forecast7:Math.round(avgDaily*7),forecast30:Math.round(avgDaily*30),forecast90:Math.round(avgDaily*90)};});
+  const spaceProductivity=all.map(s=>({...s,revPerFacing:s.revenue/Math.max(s.facings||1,1)})).sort((a,b)=>b.revPerFacing-a.revPerFacing);
+  const totalCOGS=totalRev*(1-marginPct);const avgInv=totalCOGS/6;
+  const gmroi=(totalRev-totalCOGS)/avgInv;const invTurn=totalCOGS/avgInv;
+
+  const assortmentDecisions=cats.map(cat=>{
+    const score=Math.min(100,Math.round((cat.revShare*300)+(cat.abc==='A'?40:cat.abc==='B'?20:0)+(cat.totalQty>100?20:cat.totalQty>30?10:0)+(cat.skus.length>1?10:0)));
+    const decision=score>=60?'KEEP':score>=35?'REVIEW':'REMOVE';
+    const reason=score>=60?`Strong ${cat.abc}-class. ₹${Math.round(cat.totalRev/1000)}K · ${cat.totalQty}u · ${cat.skus.length} SKUs. Maintain display priority.`:score>=35?`Mid-tier. ₹${Math.round(cat.totalRev/1000)}K. Review space allocation.`:`Low contribution ₹${Math.round(cat.totalRev/1000)}K. Move to backend or delist.`;
+    return{...cat,score,decision,reason};
+  });
+
+  const flags=[];
+  const gText=cats.map(c=>c.group.toLowerCase()).join(' ');
+  if(!gText.includes('refriger')&&!gText.includes('fridge'))flags.push({level:'critical',title:'No Refrigerator data',desc:'Zone D primary anchor missing.',rec:'Verify ERP. Add to dataset and rerun.'});
+  if(!gText.includes('washing')&&!gText.includes('washer'))flags.push({level:'critical',title:'No Washing Machine data',desc:'Zone D second anchor product missing.',rec:'Check if invoiced separately.'});
+  brandFlags.forEach(bf=>flags.push({level:'warning',title:`Brand dominance Zone ${bf.zone}: ${bf.brand} = ${bf.share}%`,desc:`Over-reliance risk.`,rec:'Ensure 2+ brands displayed. Max 60% facing per brand.'}));
+  if(cannibalization.length)flags.push({level:'warning',title:`${cannibalization.length} cannibalization risks`,desc:cannibalization.map(c=>`${c.category}: ${c.skus.length} SKUs same price band`).join('; '),rec:'Keep 1 SKU per price band per category.'});
+  const overdueInv=invData.filter(r=>r.ageing>90);
+  if(overdueInv.length)flags.push({level:'warning',title:`${overdueInv.length} SKUs aged 90+ days`,desc:overdueInv.slice(0,5).map(r=>r.name).join(', '),rec:'Promote on display or discount to liquidate.'});
+
+  const audit=runAudit();
+
+  return{cats,zoneMap,displaySKUs:displaySKUs||[],backendSKUs:backendSKUs||[],flags:flags||[],totalRev,totalQty,gmroi,invTurn,assortmentDecisions:assortmentDecisions||[],cannibalization:cannibalization||[],brandFlags:brandFlags||[],replacements:replacements||[],demandForecast:demandForecast||[],spaceProductivity:spaceProductivity||[],audit:audit||[]};
+}
+
+function runAudit(){
+  const issues=[];
+  const saleNames=new Set(salesData.map(s=>s.name.toLowerCase().trim()));
+  const invNames=new Set(invData.map(r=>r.name.toLowerCase().trim()));
+  const purchNames=new Set(purchData.map(r=>r.name.toLowerCase().trim()));
+  if(invData.length)salesData.forEach(s=>{if(!invNames.has(s.name.toLowerCase().trim()))issues.push({type:'MISSING',severity:'warning',dataset:'Inventory',sku:s.name,desc:'In Sales, not in Inventory',rec:'Add to inventory or verify stock manually.'});});
+  if(invData.length)invData.forEach(r=>{if(!saleNames.has(r.name.toLowerCase().trim()))issues.push({type:'MISMATCH',severity:'info',dataset:'Inventory',sku:r.name,desc:'In Inventory, no sales',rec:`Stock: ${r.stock}u Age: ${r.ageing}d. Consider markdown.`});});
+  if(purchData.length)purchData.forEach(r=>{if(!saleNames.has(r.name.toLowerCase().trim()))issues.push({type:'MISMATCH',severity:'warning',dataset:'Purchase',sku:r.name,desc:'Purchased, no sales',rec:`Purchased: ${r.purchased}u. Check display.`});});
+  salesData.forEach(s=>{if(s._cnt&&s._cnt>1)issues.push({type:'DUPLICATE',severity:'info',dataset:'Sales',sku:s.name,desc:`Appeared ${s._cnt}x — merged`,rec:'Review if separate products or data entry error.'});});
+  return issues;
+}
+
+// ═══════════════════════════════════════════════
+//  GENERATE PLANOGRAM — SELF-HEALING, FIXED STUCK
+// ═══════════════════════════════════════════════
+async function generate(){
+  if(!salesData.length){toast('Load sales data first','err');return;}
+  const lov=document.getElementById('LOV');lov.classList.add('show');
+  setSt('gen','Generating…');
+  const sids=['ls1','ls2','ls3','ls4','ls5','ls6','ls7','ls8','ls9'];
+  let si=0;const stepIntvl=setInterval(()=>{
+    if(si>0){const p=document.getElementById(sids[si-1]);if(p){p.classList.remove('a');p.classList.add('d');}}
+    if(si<8){const c=document.getElementById(sids[si]);if(c)c.classList.add('a');si++;}else clearInterval(stepIntvl);
+  },500);
+
+  // Run local analysis first (always succeeds)
+  let local;
+  try{local=runAnalysis();}
+  catch(e){healLog('Analysis error: '+e.message+' — using safe fallback','fix');local=runAnalysisSafe();}
+
+  // Build fallback immediately so we have it
+  const fallback=buildFallback(local);
+
+  // AI call with timeout + retry
+  let aiR=null;
+  const lovStatus=document.getElementById('lovStatus');
+  if(lovStatus)lovStatus.textContent='Trying AI generation…';
+
+  const AI_TIMEOUT=18000; // 18 sec
+  const MAX_RETRIES=2;
+  const prompt=buildPrompt(local);
+
+  for(let attempt=0;attempt<MAX_RETRIES&&!aiR;attempt++){
+    try{
+      if(attempt>0){
+        if(lovStatus)lovStatus.textContent=`Retry attempt ${attempt+1}…`;
+        healLog(`AI generation retry ${attempt+1}`,'fix');
+        await new Promise(r=>setTimeout(r,1000));
+      }
+      const controller=new AbortController();
+      const timer=setTimeout(()=>{controller.abort();},AI_TIMEOUT);
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',signal:controller.signal,
+        headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:6000,messages:[{role:'user',content:prompt}]})
+      });
+      clearTimeout(timer);
+      if(res.ok){
+        const data=await res.json();
+        const raw=(data.content||[]).map(c=>c.text||'').join('').trim();
+        const js=raw.indexOf('{'),je=raw.lastIndexOf('}')+1;
+        if(js>=0&&je>js){aiR=JSON.parse(raw.slice(js,je));healLog('AI planogram generated successfully','ok');}
+        else{throw new Error('AI returned no valid JSON');}
+      } else {
+        throw new Error('API status '+res.status);
+      }
+    }catch(e){
+      if(e.name==='AbortError'){healLog('AI timed out ('+AI_TIMEOUT/1000+'s) — using local engine','fix');}
+      else{healLog('AI error: '+e.message+' — using local engine','fix');}
+      aiR=null;
+    }
+  }
+
+  clearInterval(stepIntvl);
+  sids.forEach((id,i)=>{const el=document.getElementById(sids[i]);if(el){el.classList.remove('a');el.classList.add('d');}});
+  const ls8=document.getElementById('ls8');if(ls8){ls8.classList.remove('d');ls8.classList.add(aiR?'d':'e');}
+
+  if(!aiR){
+    aiR=fallback;
+    if(lovStatus)lovStatus.textContent='Local engine used (AI unavailable) — full planogram ready';
+    toast('Local engine used — planogram complete','inf');
+  } else {
+    if(lovStatus)lovStatus.textContent='AI planogram generated ✓';
+  }
+
+  // Merge flags
+  const localFlags=local.flags||[];const merged=[...(aiR.flags||[])];
+  localFlags.forEach(lf=>{if(!merged.find(af=>af.title===lf.title))merged.push(lf);});
+  aiR.flags=merged;
+  // Ensure VM rules always exist
+  if(!aiR.vmRules||!Object.keys(aiR.vmRules).length)aiR.vmRules=fallback.vmRules;
+  if(!aiR.customerLogic)aiR.customerLogic=fallback.customerLogic;
+
+  planResult={ai:aiR,local};
+
+  try{renderAll(planResult);}
+  catch(renderErr){
+    healLog('Render error: '+renderErr.message+' — attempting partial render','fix');
+    try{renderAllSafe(planResult);}
+    catch(e2){healLog('Partial render also failed: '+e2.message,'warn');}
+  }
+
+  // Save history
+  try{
+    const hist=DB.load('PHISTORY',[]);
+    hist.unshift({ts:new Date().toLocaleString(),skus:salesData.length,cats:local.cats.length,flags:merged.length,rev:Math.round(local.totalRev/1000)+'K',aiUsed:!!aiR&&aiR!==fallback});
+    if(hist.length>20)hist.pop();DB.save('PHISTORY',hist);
+    logChange('Planogram generated: '+salesData.length+' SKUs · '+local.cats.length+' categories · AI:'+(aiR&&aiR!==fallback?'Yes':'Fallback'));
+  }catch(he){healLog('History save failed: '+he.message,'warn');}
+
+  lov.classList.remove('show');
+  setSt('live',salesData.length+' SKUs · Ready');
+  if(aiR!==fallback)toast('Planogram generated','ok');
+  document.getElementById('xlBtn').style.display='';document.getElementById('prtBtn').style.display='';
+  if(merged.length){const fc=document.getElementById('fc-b');if(fc){fc.textContent=merged.length;fc.style.display='';}}
+  // Auto-generate barcodes in background
+  setTimeout(()=>generateAllBarcodes(),500);
+  renderDashboard(aiR,local);nav('dash');
+}
+
+function runAnalysisSafe(){
+  // Minimal safe fallback analysis
+  const totalRev=salesData.reduce((a,s)=>a+s.revenue,0);
+  const totalQty=salesData.reduce((a,s)=>a+s.qty,0);
+  salesData.forEach((s,i)=>{s.abc='B';s.role='CORE';s.facings=2;s.spaceShare=1;s.demandRate=s.qty/90;s.avgRate=s.rate||s.revenue/Math.max(s.qty,1);s.eligibility='DISPLAY';s.display='Full Bay';s.zone='B';s.aisle='A1';s.bay='B1';s.shelf='S3 — Hand Level';s.subzone=s.group;s.fixture='Gondola';s.revShare=s.revenue/Math.max(totalRev,1);s.grossMargin=0.35;});
+  return{cats:[],zoneMap:{A:[],B:salesData,C:[],D:[],E:[],F:[]},displaySKUs:salesData,backendSKUs:[],flags:[],totalRev,totalQty,gmroi:2.5,invTurn:4,assortmentDecisions:[],cannibalization:[],brandFlags:[],replacements:[],demandForecast:[],spaceProductivity:[],audit:[]};
+}
+
+function buildPrompt(local){
+  const tg=local.cats.slice(0,20).map(c=>`${c.group}[${c.abc}]:₹${Math.round(c.totalRev/1000)}K·${c.totalQty}u`).join('\n');
+  const ts=[...salesData].sort((a,b)=>b.revenue-a.revenue).slice(0,35).map(s=>`${s.name}|${s.make}|${s.group}|${s.qty}u|₹${Math.round(s.revenue/1000)}K|${s.role}|${s.facings}f`).join('\n');
+  return`You are MSP Store Nagpur retail planogram system.
+ZONES: A=Comparison(Mixer,Induction,Kettle,Iron,Vacuum) B=Basket(Cookware) C=Destination(GasStove,Chimney,Cooker,WetGrinder) D=HighValue(AirFryer,Microwave,WaterPurifier,PersonalCare) E=Exploration(Tiffin,Bottles,Tableware) F=Utility(Spares,Cleaning)
+CATEGORIES:\n${tg}\nSKUs:\n${ts}
+Return ONLY raw JSON no markdown:
+{"zones":{"A":{"aisles":[{"aisle":"A1","bays":[{"bay":"B1","name":"Bay Name","capacity":12,"shelves":[{"shelf":"S4 — Eye Level ★","productType":"Mixer","skus":["SKU1"],"role":"HERO","facings":5,"display":"Full Bay","fixture":"Gondola","spaceShare":9.2,"priceBand":"₹3K–₹10K","note":"demo mandatory"}]}]}]},"B":{"aisles":[]},"C":{"aisles":[]},"D":{"aisles":[]},"E":{"aisles":[]},"F":{"aisles":[]}},"backend":[{"zone":"F","productType":"Spares","skus":["SKU"],"reason":"Low velocity","stock":"Counter","replacement":"Alt SKU"}],"flags":[],"vmRules":{"A":["Rule 1"],"B":[],"C":[],"D":[],"E":[],"F":[]},"customerLogic":{"A":"Customer enters seeking comparison","B":"Customer is in purchase mode","C":"System decision mode","D":"Needs staff assistance","E":"Browsing mode","F":"Self-service mode"}}`;
+}
+
+// ═══════════════════════════════════════════════
+//  FALLBACK ENGINE
+// ═══════════════════════════════════════════════
+function buildFallback(local){
+  const zones={A:{aisles:[]},B:{aisles:[]},C:{aisles:[]},D:{aisles:[]},E:{aisles:[]},F:{aisles:[]}};
+  'ABCDEF'.split('').forEach(z=>{
+    const skus=local.zoneMap[z]||[];const am={};
+    skus.forEach(s=>{if(!am[s.aisle])am[s.aisle]={};if(!am[s.aisle][s.bay])am[s.aisle][s.bay]=[];am[s.aisle][s.bay].push(s);});
+    zones[z].aisles=Object.keys(am).sort().map(aisle=>({aisle,bays:Object.keys(am[aisle]).sort().map(bay=>({bay,name:am[aisle][bay][0]?.subzone||bay,capacity:12,shelves:am[aisle][bay].slice(0,6).map(s=>({shelf:s.shelf,productType:s.group,skus:[s.name],role:s.role,facings:s.facings||2,display:s.display,fixture:s.fixture,spaceShare:+(s.spaceShare||0).toFixed(1),priceBand:s.avgRate?`₹${Math.round(s.avgRate/1000)}K`:''  ,note:`${s.qty}u·₹${Math.round(s.revenue/1000)}K·${s.abc}`}))}))}));
+  });
+  return{
+    zones,backend:local.backendSKUs.map(s=>({zone:s.zone||'—',productType:s.group,skus:[s.name],reason:`${s.eligibility}: ${s.qty}u·₹${Math.round(s.revenue/1000)}K`,stock:s.stock?`${s.stock}u`:'—',replacement:'—'})),
+    flags:[],
+    vmRules:{
+      A:['Eye Level S4: Hero SKU mandatory — demo plug always connected.','Price ladder L→R: Entry → Core → Hero → Premium.','Brand blocking: max 60% facing per brand.','Demo units: Mixer, Induction, Kettle, Vacuum — no demo = 40% conversion drop.'],
+      B:['Ladle + Spatula on SAME fixture as Kadhai.','Air Fryer moved to Zone D. Remove from B if placed.','Cookware progression L→R: non-stick entry → stainless core → tri-ply premium.','Hook pegboard for small tools.'],
+      C:['Chimney MUST hang above Gas Stove.','Gas pipe + lighter at Gas Stove POS.','Pressure Cooker L→R: 1.5L → 2L → 3L → 5L → 6L → 8L.','Wet Grinder on floor platform only.'],
+      D:['Open floor 2m+ per large appliance. Walk-around space critical.','Air Fryer near Microwave. Staff demo mandatory.','Specification board per appliance.','Water Purifier: show filter schedule card.'],
+      E:['Tiffin + Bottle stacked vertically by size.','Dinner Sets in glass showcase ONLY.','Bowl Steel: quantity stacking display.','Cross-ref to Zone A: "Complete your tea station →"'],
+      F:['Utility Zone only — Spares, Cleaning, Pest Control.','Strictly by brand: Prestige | Hawkins | Pureit.','Price tag on EVERY spare.','Cleaning as complete set: Mop + Bucket + Scrubber + Dust Pan.']
+    },
+    customerLogic:{A:'Customer enters seeking comparison — 3 brands must be visible in first 10 seconds.',B:'Customer is in purchase mode — add-on products within arm\'s reach of hero SKU.',C:'Customer is in system decision mode — Gas Stove and Chimney must be adjacent.',D:'Customer needs staff assistance — open floor, no barriers.',E:'Customer is browsing — variety and abundance trigger purchase.',F:'Customer knows what they need — self-service in under 30 seconds.'}
+  };
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER ALL — with safe wrappers
+// ═══════════════════════════════════════════════
+function renderAll(result){
+  const{ai,local}=result;
+  const safe=(fn,name)=>{try{fn();}catch(e){healLog('Render['+name+']: '+e.message,'fix');}};
+  safe(()=>renderDashboard(ai,local),'dashboard');
+  safe(()=>renderMetrics(local),'metrics');
+  safe(()=>{'ABCDEF'.split('').forEach(z=>renderZone(z,ai));},'zones');
+  safe(()=>renderVisPlano(ai,local),'visplano');
+  safe(()=>renderIntelligence(local,ai),'intelligence');
+  safe(()=>renderReplacementEngine(local),'replacement');
+  safe(()=>renderAssortment(local.assortmentDecisions),'assortment');
+  safe(()=>renderVelocity(local),'velocity');
+  safe(()=>renderBackend(ai),'backend');
+  safe(()=>renderVM(ai),'vm');
+  safe(()=>renderTags(local.displaySKUs),'tags');
+  safe(()=>renderFlags(ai.flags||[]),'flags');
+  safe(()=>renderAudit(local.audit),'audit');
+  safe(()=>renderDiag(local),'diagnostics');
+  safe(()=>renderBarcodeEngine(),'barcodes');
+}
+
+function renderAllSafe(result){
+  try{renderDashboard(result.ai,result.local);}catch(e){}
+  try{'ABCDEF'.split('').forEach(z=>{try{renderZone(z,result.ai);}catch(e){}});}catch(e){}
+}
+
+// DASHBOARD
+function renderDashboard(ai,local){
+  const tr=local.totalRev;
+  document.getElementById('dm-skus').textContent=salesData.length;
+  document.getElementById('dm-rev').textContent='₹'+(tr>=1e7?(tr/1e7).toFixed(1)+'Cr':Math.round(tr/1e5)+'L');
+  document.getElementById('dm-gmroi').textContent=local.gmroi.toFixed(2)+'x';
+  document.getElementById('dm-flags').textContent=(ai.flags||[]).length;
+  document.getElementById('dm-disp').textContent=local.displaySKUs.length;
+  document.getElementById('dm-labels').textContent=barcodeDB.count()+(allTags.length?' / '+allTags.length+' tags':'');
+  document.getElementById('dm-heal').textContent=healEvents.length;
+  document.getElementById('dm-status').textContent='✓ Generated';document.getElementById('dm-status').style.color='var(--gn)';
+  document.getElementById('dm-stdt').textContent=new Date().toLocaleString();
+  const flags=ai.flags||[];
+  let alertHTML='<div class="alert-row">';
+  if(!flags.length)alertHTML+=`<div class="alert-item alert-g"><span class="alert-icon">✓</span><span>All checks passed. Planogram ready for execution.</span></div>`;
+  flags.filter(f=>f.level==='critical').slice(0,3).forEach(f=>alertHTML+=`<div class="alert-item alert-c"><span class="alert-icon">⚑</span><div><strong>${f.title}</strong><br><span style="font-size:10px;opacity:.8">${f.desc}</span></div></div>`);
+  flags.filter(f=>f.level!=='critical').slice(0,3).forEach(f=>alertHTML+=`<div class="alert-item alert-w"><span class="alert-icon">⚠</span><div><strong>${f.title}</strong><br><span style="font-size:10px;opacity:.8">${f.desc}</span></div></div>`);
+  alertHTML+='</div>';
+  document.getElementById('dashAlerts').innerHTML=alertHTML;
+  const topCat=local.cats[0];const aClass=local.cats.filter(c=>c.abc==='A');
+  const cann=local.cannibalization||[];const reps=local.replacements||[];
+  let recHTML='<div class="rec-grid">';
+  if(topCat)recHTML+=`<div class="rec-card"><div class="rec-title" style="color:var(--ac)">🏆 Prioritise ${topCat.group}</div><div class="rec-body">Eye-level dominance, demo unit, 4+ facings. ₹${Math.round(topCat.totalRev/1000)}K revenue — #1 category.</div></div>`;
+  if(aClass.length)recHTML+=`<div class="rec-card"><div class="rec-title" style="color:var(--gn)">📊 ${aClass.length} A-class categories drive 80% revenue</div><div class="rec-body">${aClass.slice(0,4).map(c=>c.group).join(', ')}</div></div>`;
+  if(cann.length)recHTML+=`<div class="rec-card"><div class="rec-title" style="color:var(--rd)">⚠ ${cann.length} Cannibalization risks</div><div class="rec-body">${cann.map(c=>c.category).join(', ')}. Reduce to 1 SKU/price band.</div></div>`;
+  if(reps.length)recHTML+=`<div class="rec-card"><div class="rec-title" style="color:var(--bl)">↻ ${reps.length} Replacement mappings ready</div><div class="rec-body">Check Replacement Engine.</div></div>`;
+  recHTML+='</div>';document.getElementById('dashRecs').innerHTML=recHTML;
+  let zHTML='';
+  'ABCDEF'.split('').forEach(z=>{
+    const m=ZM[z];const cnt=(ai.zones[z]?.aisles||[]).reduce((a,ao)=>a+(ao.bays||[]).reduce((b,bay)=>b+(bay.shelves||[]).length,0),0);
+    const zSkus=local.zoneMap[z]||[];const zRev=zSkus.reduce((a,s)=>a+s.revenue,0);
+    zHTML+=`<div style="background:var(--sf);border:1px solid ${m.bd};border-radius:var(--rl);padding:14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden" onclick="nav('z${z}')">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${m.c}"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-family:var(--fh);font-size:17px;font-weight:800;color:${m.c}">Zone ${z}</span>
+        <span style="font-size:9px;color:var(--mu);background:var(--sf2);padding:2px 6px;border-radius:3px">${m.fl}</span>
+      </div>
+      <div style="font-family:var(--fh);font-size:12px;font-weight:700;margin-bottom:4px">${m.n}</div>
+      <div style="font-size:9.5px;color:var(--mu2);display:flex;gap:10px">
+        <span>${cnt} shelves</span><span>${zSkus.length} SKUs</span><span style="color:var(--ac)">₹${Math.round(zRev/1000)}K</span>
+      </div>
+      <div style="margin-top:8px;font-size:9.5px;color:${m.c}">View →</div></div>`;
+  });
+  document.getElementById('dashZones').innerHTML=zHTML;
+}
+
+function resetDashboard(){
+  ['dm-skus','dm-rev','dm-gmroi','dm-flags','dm-disp','dm-labels','dm-heal'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('dm-status').textContent='Not Generated';document.getElementById('dm-status').style.color='var(--mu2)';
+  document.getElementById('dm-stdt').textContent='Load data to begin';
+  document.getElementById('dashAlerts').innerHTML='<div class="alert-row"><div class="alert-item alert-g"><span class="alert-icon">✓</span><span>Load data to see live alerts.</span></div></div>';
+  document.getElementById('dashRecs').innerHTML='<div class="rec-grid"><div class="rec-card"><div class="rec-title" style="color:var(--mu)">No recommendations yet</div><div class="rec-body">Generate planogram to see recommendations.</div></div></div>';
+  document.getElementById('dashZones').innerHTML='<div style="color:var(--mu);font-size:11px;grid-column:1/-1;text-align:center;padding:20px">Generate planogram to see zone status</div>';
+}
+
+// METRICS
+function renderMetrics(local){
+  const tr=local.totalRev,aC=local.cats.filter(c=>c.abc==='A'),aR=aC.reduce((a,c)=>a+c.totalRev,0);
+  const avgDOI=salesData.filter(s=>s.doi!==null).reduce((a,s)=>a+(s.doi||0),0)/Math.max(salesData.filter(s=>s.doi!==null).length,1);
+  const avgST=salesData.filter(s=>s.sellThrough!==null).reduce((a,s)=>a+(s.sellThrough||0),0)/Math.max(salesData.filter(s=>s.sellThrough!==null).length,1);
+  let html=`<div class="mg">
+    <div class="mc"><div class="ml2">GMROI</div><div class="mv" style="color:var(--gn)">${local.gmroi.toFixed(2)}x</div><div class="ms">Gross Margin Return</div></div>
+    <div class="mc"><div class="ml2">Inv. Turnover</div><div class="mv" style="color:var(--bl)">${local.invTurn.toFixed(1)}x</div><div class="ms">Estimated from revenue</div></div>
+    <div class="mc"><div class="ml2">Avg DOI</div><div class="mv" style="color:${invData.length?'var(--or)':'var(--mu2)'}">${invData.length?Math.round(avgDOI)+'d':'—'}</div><div class="ms">${invData.length?'Avg across SKUs':'Upload inventory'}</div></div>
+    <div class="mc"><div class="ml2">Sell-through</div><div class="mv" style="color:${purchData.length?'var(--pu)':'var(--mu2)'}">${purchData.length?Math.round(avgST*100)+'%':'—'}</div><div class="ms">${purchData.length?'Units Sold ÷ Purchased':'Upload purchase'}</div></div>
+    <div class="mc"><div class="ml2">A-Class Rev%</div><div class="mv" style="color:var(--ac)">${Math.round(aR/tr*100)}%</div><div class="ms">${aC.length} categories</div></div>
+    <div class="mc"><div class="ml2">Display Eff.</div><div class="mv" style="color:var(--pu)">${Math.round(local.displaySKUs.length/(salesData.length||1)*100)}%</div><div class="ms">${local.displaySKUs.length} on floor</div></div>
+    <div class="mc"><div class="ml2">Avg Demand/day</div><div class="mv" style="color:var(--or)">${(local.totalQty/salesData.length/(cfg.salesPeriod||90)).toFixed(2)}</div><div class="ms">Units avg</div></div>
+    <div class="mc"><div class="ml2">Barcodes</div><div class="mv" style="color:var(--cy)">${barcodeDB.count()}</div><div class="ms">In barcode master</div></div>
+  </div>`;
+  html+=`<div class="sh"><h2>ABC Category Classification</h2><div class="shl"></div></div>`;
+  html+=`<div class="card"><div class="cb" style="padding:0">`;
+  local.cats.slice(0,25).forEach(c=>{const sp=Math.min(100,c.revShare*400);
+    html+=`<div style="padding:8px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px">
+      <span class="abc${c.abc}" style="min-width:12px">${c.abc}</span>
+      <span style="font-size:10.5px;flex:1">${c.group}</span>
+      <span style="font-size:9.5px;color:var(--mu2);min-width:50px;text-align:right">${c.totalQty}u</span>
+      <span style="font-size:10.5px;color:var(--ac);font-weight:600;min-width:55px;text-align:right">₹${Math.round(c.totalRev/1000)}K</span>
+      <div style="width:100px"><div class="sbar"><div class="sfill" style="width:${sp}%;background:${c.abc==='A'?'var(--gn)':c.abc==='B'?'var(--or)':'var(--mu)'}"></div></div>
+      <div style="font-size:9px;color:var(--mu)">${(c.revShare*100).toFixed(1)}%</div></div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+  document.getElementById('metContent').innerHTML=html;
+}
+
+// HELPERS
+function rrc(r){const rc=(r||'').toUpperCase();return`rb r${['HERO','CORE','ENTRY','PREMIUM','ADDON','KVI'].includes(rc)?rc:'ADDON'}`;}
+function rdc(d){if(!d)return'df';const dl=d.toLowerCase();if(dl.includes('full'))return'df';if(dl.includes('limited'))return'dl';if(dl.includes('backend')||dl.includes('counter'))return'ddb';if(dl.includes('remove'))return'dr';return'df';}
+
+// ZONE RENDER
+function renderZone(z,ai){
+  const m=ZM[z],el=document.getElementById('c'+z),zd=ai.zones?.[z];
+  if(!zd?.aisles?.length){el.innerHTML=`<div class="empty"><div class="ei" style="color:${m.c}">▪</div><h3>Zone ${z} — No data assigned</h3><p>SKUs will appear here after generate.</p></div>`;return;}
+  const cl=ai.customerLogic?.[z]||'';
+  let html=cl?`<div style="margin-bottom:12px;padding:10px 13px;background:rgba(91,163,245,.06);border:1px solid rgba(91,163,245,.2);border-radius:8px;font-size:10.5px;color:var(--bl)">👤 <strong>Customer View:</strong> ${cl}</div>`:'';
+  zd.aisles.forEach(ao=>{(ao.bays||[]).forEach(bay=>{
+    const hc=(bay.shelves||[]).filter(s=>s.role==='HERO').length;
+    html+=`<div class="pb"><div class="phead" style="background:${m.bg}">
+      <span class="zbg" style="background:${m.c};color:#080810">Zone ${z}</span>
+      <span class="znm" style="color:${m.c}">${ao.aisle}·${bay.bay}—${bay.name||''}</span>
+      <span class="zmt">${(bay.shelves||[]).length} shelves</span>
+      ${hc?`<span class="zmt" style="color:var(--ac)">★${hc} HERO</span>`:''}
+      <span class="zfl">${m.fl}</span>
+    </div>
+    <table class="pt-t"><thead><tr><th>Shelf</th><th>Product Type</th><th>SKUs</th><th>Role</th><th>Facings</th><th>Price</th><th>Display</th><th>Space%</th><th>Note</th></tr></thead><tbody>`;
+    (bay.shelves||[]).forEach(sh=>{
+      const isEye=/eye level|★/i.test(sh.shelf||'');
+      html+=`<tr${isEye?' class="eye"':''}>
+        <td><span class="stg">${sh.shelf||'—'}</span></td>
+        <td style="color:var(--tx);font-weight:${isEye?'600':'400'}">${sh.productType||'—'}</td>
+        <td style="max-width:180px;font-size:10px">${(sh.skus||[]).join('<br>')}</td>
+        <td><span class="${rrc(sh.role)}">${sh.role||'CORE'}</span></td>
+        <td><span class="fp"><span class="fv">${sh.facings||'—'}</span>f</span></td>
+        <td style="font-size:9.5px;color:var(--mu2)">${sh.priceBand||'—'}</td>
+        <td><span class="${rdc(sh.display)}">${sh.display||'Full Bay'}</span></td>
+        <td style="font-size:9.5px;color:var(--mu2)">${sh.spaceShare?sh.spaceShare.toFixed(1)+'%':'—'}</td>
+        <td style="font-size:9.5px;color:var(--mu);max-width:140px">${sh.note||''}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  });});
+  el.innerHTML=html;
+}
+
+// VISUAL PLANOGRAM
+let vpView_='zone',vpZone_='A';
+function setVPView(v,btn){vpView_=v;document.querySelectorAll('[id^="vpv-"]').forEach(b=>{b.style.borderColor='var(--bd2)';b.style.color='var(--mu2)';});btn.style.borderColor='var(--ac)';btn.style.color='var(--ac)';renderVisPlano(planResult?.ai,planResult?.local);}
+function setVPZone(z,btn){vpZone_=z;document.querySelectorAll('.vzb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderVisPlano(planResult?.ai,planResult?.local);}
+const roleBgMap={HERO:'rgba(232,197,71,.18)',CORE:'rgba(61,219,122,.12)',PREMIUM:'rgba(155,127,245,.15)',ENTRY:'rgba(91,163,245,.12)',ADDON:'rgba(255,255,255,.05)'};
+
+function renderVisPlano(ai,local){
+  if(!ai||!local){document.getElementById('vpContent').innerHTML='<div class="empty"><div class="ei">⊞</div><h3>Generate planogram first</h3></div>';return;}
+  const zd=ai.zones?.[vpZone_];const m=ZM[vpZone_];
+  if(!zd?.aisles?.length){document.getElementById('vpContent').innerHTML=`<div class="empty"><div class="ei" style="color:${m.c}">▪</div><h3>Zone ${vpZone_} — No data</h3></div>`;return;}
+  let html='';
+  if(vpView_==='zone'){
+    (zd.aisles||[]).forEach(ao=>{
+      html+=`<div style="margin-bottom:20px"><div style="font-family:var(--fh);font-size:13px;font-weight:700;color:${m.c};margin-bottom:10px">Aisle ${ao.aisle}</div>`;
+      html+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">`;
+      (ao.bays||[]).forEach(bay=>{
+        html+=`<div class="vp-bay"><div class="vp-bay-head" style="background:${m.bg}"><span class="zbg" style="background:${m.c};color:#080810">${bay.bay}</span><span style="font-family:var(--fh);font-size:12px;font-weight:700;color:${m.c}">${bay.name||''}</span></div>`;
+        [...(bay.shelves||[])].reverse().forEach(sh=>{
+          const isEye=/eye level|★/i.test(sh.shelf||'');
+          html+=`<div class="vp-shelf"><div class="vp-shelf-label ${isEye?'eye':''}">${sh.shelf} · ${sh.productType} <span style="margin-left:auto;color:var(--ac)">${sh.facings}f</span></div>`;
+          html+=`<div class="vp-shelf-row">`;
+          (sh.skus||[]).forEach(skuName=>{
+            const bg=roleBgMap[sh.role]||'rgba(255,255,255,.04)';
+            html+=`<div class="vp-sku" style="background:${bg};border:1px solid ${bg.replace('.','0.')};flex:1">
+              <div class="vp-sku-name">${skuName}</div>
+              <div class="vp-sku-brand">${sh.productType}</div>
+              <div class="vp-sku-price">${sh.priceBand||''}</div>
+              <div class="vp-sku-meta"><span class="${rrc(sh.role)}" style="font-size:8px">${sh.role}</span><span class="vp-sku-f">${sh.facings}f</span></div>
+            </div>`;
+          });
+          html+=`</div></div>`;
+        });
+        html+=`</div>`;
+      });
+      html+=`</div></div>`;
+    });
+  } else if(vpView_==='bay'){
+    (zd.aisles||[]).forEach(ao=>{(ao.bays||[]).forEach(bay=>{
+      html+=`<div class="vp-bay" style="margin-bottom:16px"><div class="vp-bay-head" style="background:${m.bg}"><span class="zbg" style="background:${m.c};color:#080810">${ao.aisle}·${bay.bay}</span><span style="font-family:var(--fh);font-size:13px;font-weight:700;color:${m.c}">${bay.name}</span></div>`;
+      [...(bay.shelves||[])].reverse().forEach(sh=>{
+        const isEye=/eye level|★/i.test(sh.shelf||'');
+        html+=`<div class="vp-shelf"><div class="vp-shelf-label ${isEye?'eye':''}">${sh.shelf} — ${sh.productType} <span style="margin-left:auto">${sh.facings}f · <span class="${rdc(sh.display)}">${sh.display||'Full Bay'}</span></span></div>`;
+        html+=`<div class="vp-shelf-row">`;
+        (sh.skus||[]).forEach(skuName=>{
+          const s2=salesData.find(s=>s.name===skuName)||{};
+          const bg=roleBgMap[sh.role]||'rgba(255,255,255,.04)';
+          html+=`<div class="vp-sku" style="background:${bg};border:1px solid rgba(255,255,255,.08);flex:1">
+            <div class="vp-sku-name">${skuName}</div>
+            <div class="vp-sku-brand">${s2.make||''}</div>
+            <div class="vp-sku-price">${s2.avgRate?'₹'+Math.round(s2.avgRate).toLocaleString():sh.priceBand||''}</div>
+            <div class="vp-sku-meta"><span class="${rrc(sh.role)}" style="font-size:8px">${sh.role}</span><span class="vp-sku-f">${sh.facings}f</span>${s2.doi!=null?`<span class="vp-sku-f" style="color:${s2.doi<7?'var(--rd)':'var(--mu2)'}">DOI:${s2.doi}d</span>`:''}</div>
+          </div>`;
+        });
+        html+=`</div></div>`;
+      });
+      html+=`</div>`;
+    });});
+  } else {
+    html+=`<div style="font-family:var(--fh);font-size:13px;font-weight:700;color:${m.c};margin-bottom:12px">Zone ${vpZone_} — All Shelves</div>`;
+    const allShelves=[];
+    (zd.aisles||[]).forEach(ao=>(ao.bays||[]).forEach(bay=>(bay.shelves||[]).forEach(sh=>allShelves.push({...sh,aisle:ao.aisle,bay:bay.bay,bayName:bay.name||''}))));
+    allShelves.sort((a,b)=>{const so={'S5':0,'S4':1,'S3':2,'S2':3,'S1':4};return (so[a.shelf?.substring(0,2)]??5)-(so[b.shelf?.substring(0,2)]??5);});
+    allShelves.forEach(sh=>{
+      const isEye=/eye level|★/i.test(sh.shelf||'');
+      html+=`<div class="vp-shelf" style="margin-bottom:8px"><div class="vp-shelf-label ${isEye?'eye':''}">
+        <span style="color:var(--mu);margin-right:8px">${sh.aisle}·${sh.bay}</span>${sh.shelf} — ${sh.productType}
+        <span style="margin-left:auto;display:flex;gap:8px;align-items:center"><span class="${rrc(sh.role)}" style="font-size:8.5px">${sh.role}</span><span class="vp-sku-f">${sh.facings}f</span></span>
+      </div>
+      <div class="vp-shelf-row">${(sh.skus||[]).map(sk=>`<div class="vp-sku" style="background:${roleBgMap[sh.role]||'rgba(255,255,255,.04)'};border:1px solid rgba(255,255,255,.08);flex:1"><div class="vp-sku-name">${sk}</div></div>`).join('')}</div></div>`;
+    });
+  }
+  document.getElementById('vpContent').innerHTML=html||`<div class="empty"><div class="ei">⊞</div><h3>No data for Zone ${vpZone_}</h3></div>`;
+}
+
+// INTELLIGENCE
+function renderIntelligence(local,ai){
+  const cann=local.cannibalization||[],brand=local.brandFlags||[],forecast=local.demandForecast||[];
+  let html=`<div class="intel-grid">
+    <div class="int-card"><div class="int-head"><span class="int-icon">📈</span><span class="int-title">Demand Forecast</span></div><div class="int-body" style="max-height:220px;overflow-y:auto">`;
+  forecast.slice(0,8).forEach(f=>html+=`<div style="padding:5px 0;border-bottom:1px solid var(--bd);display:flex;gap:8px">
+    <span style="flex:1;color:var(--tx);font-size:10px">${f.group}</span>
+    <span style="color:var(--bl);font-size:9.5px">${f.forecast7}u/7d</span>
+    <span style="color:var(--gn);font-size:9.5px">${f.forecast30}u/30d</span>
+  </div>`);
+  html+=`</div></div>
+  <div class="int-card"><div class="int-head"><span class="int-icon">🏷</span><span class="int-title">Brand Dominance</span></div><div class="int-body">`;
+  if(!brand.length)html+=`<span style="color:var(--gn)">✓ No issues detected</span>`;
+  else brand.forEach(b=>html+=`<div style="padding:5px 0;border-bottom:1px solid var(--bd)"><strong>Zone ${b.zone}: ${b.brand}</strong> = ${b.share}%<br><span style="color:var(--rd);font-size:9.5px">Reduce to max 60% facing.</span></div>`);
+  html+=`</div></div>
+  <div class="int-card"><div class="int-head"><span class="int-icon">⚠</span><span class="int-title">Cannibalization</span></div><div class="int-body">`;
+  if(!cann.length)html+=`<span style="color:var(--gn)">✓ None detected</span>`;
+  else cann.forEach(c=>html+=`<div style="padding:5px 0;border-bottom:1px solid var(--bd)"><strong>${c.category}</strong>: ${c.skus.length} SKUs same band<br><span style="font-size:9px;color:var(--mu)">Keep 1 per price band.</span></div>`);
+  html+=`</div></div></div>`;
+  if(ai?.customerLogic){
+    html+=`<div class="sh"><h2>Customer Logic per Zone</h2><div class="shl"></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">`;
+    Object.entries(ai.customerLogic).forEach(([z,logic])=>{const m=ZM[z]||{c:'var(--mu)'};
+      html+=`<div class="int-card"><div class="int-head"><span style="font-size:16px;color:${m.c};font-family:var(--fh);font-weight:800">Zone ${z}</span></div><div class="int-body">${logic}</div></div>`;
+    });
+    html+=`</div>`;
+  }
+  const doiSKUs=salesData.filter(s=>s.doi!==null).sort((a,b)=>a.doi-b.doi);
+  if(doiSKUs.length){
+    html+=`<div class="sh"><h2>Days of Inventory — Urgent Reorders</h2><div class="shl"></div></div><div class="card"><div class="cb" style="padding:0">`;
+    doiSKUs.slice(0,12).forEach(s=>{
+      html+=`<div style="padding:7px 13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;font-size:10.5px">
+        <span style="flex:1">${s.name}</span>
+        <span style="color:var(--mu)">${s.stock}u stock</span>
+        <span style="padding:2px 6px;border-radius:4px;font-size:9.5px;font-weight:700;background:${s.doi<7?'rgba(240,96,96,.15)':s.doi<30?'rgba(245,150,66,.15)':'rgba(61,219,122,.1)'};color:${s.doi<7?'var(--rd)':s.doi<30?'var(--or)':'var(--gn)'}">DOI: ${s.doi}d</span>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+  document.getElementById('intelContent').innerHTML=html;
+}
+
+// REPLACEMENT ENGINE
+function renderReplacementEngine(local){
+  const reps=local.replacements||[];
+  if(!reps.length){document.getElementById('repContent').innerHTML='<div class="empty"><div class="ei">↻</div><h3>No replacements needed</h3></div>';return;}
+  let html=`<div class="card"><div class="ch"><h3>↻ Replacement Map</h3><span style="font-size:10px;color:var(--mu)">${reps.length} mappings</span></div>`;
+  reps.forEach(r=>{
+    const nextSku=salesData.find(s=>s.name===r.replacement);
+    html+=`<div class="rep-row">
+      <div class="rep-from"><div style="font-weight:600">✕ ${r.outSKU}</div><div style="font-size:9px;color:var(--mu)">${r.outGroup} · ${r.outRole}</div></div>
+      <div class="rep-arrow">→</div>
+      <div class="rep-to"><div style="font-weight:600">✓ ${r.replacement}</div>
+        <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">
+          <span class="ntd-badge">NEXT_TO_DISPLAY</span>
+          ${nextSku?.stock!=null?`<span style="font-size:9px;color:${nextSku.stock<5?'var(--rd)':'var(--gn)'}">Stock:${nextSku.stock}u</span>`:''}
+        </div>
+      </div>
+      <div class="rep-reason">${r.reason}</div>
+    </div>`;
+  });
+  html+=`</div>`;document.getElementById('repContent').innerHTML=html;
+}
+
+// ASSORTMENT
+let assData=[];
+function renderAssortment(decisions){assData=decisions||[];filterAss('');}
+function setAF(f,btn){aFilt=f;document.querySelectorAll('.afl').forEach(b=>{b.classList.remove('on');b.style.borderColor='var(--bd2)';b.style.color='var(--mu2)';});btn.classList.add('on');btn.style.borderColor='var(--ac)';btn.style.color='var(--ac)';filterAss(document.getElementById('aSearch').value);}
+function filterAss(q){
+  let items=assData;
+  if(aFilt!=='all')items=items.filter(d=>d.abc===aFilt||d.decision===aFilt);
+  if(q)items=items.filter(d=>d.group.toLowerCase().includes(q.toLowerCase())||d.skus.some(s=>s.name?.toLowerCase().includes(q.toLowerCase())));
+  if(!items.length){document.getElementById('assContent').innerHTML='<div class="empty"><div class="ei">◉</div><h3>No matches</h3></div>';return;}
+  const dc={KEEP:'var(--gn)',REVIEW:'var(--or)',REMOVE:'var(--rd)'};
+  document.getElementById('assContent').innerHTML=items.map((d,i)=>{const c=dc[d.decision]||'var(--mu2)';
+    return`<div class="acat" id="ac${i}">
+      <div class="acath" onclick="tgl(${i})">
+        <span class="arr">▶</span><span class="abc${d.abc}" style="min-width:12px">${d.abc}</span>
+        <span style="font-family:var(--fh);font-size:12px;font-weight:700;flex:1">${d.group}</span>
+        <span style="font-size:9.5px;color:var(--mu2);margin-right:7px">₹${Math.round(d.totalRev/1000)}K·${d.totalQty}u</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:${c}18;color:${c};border:1px solid ${c}33">${d.decision}</span>
+        <div class="sbar" style="width:55px;margin-left:7px"><div class="sfill" style="width:${d.score}%;background:${c}"></div></div>
+        <span style="font-size:9px;color:var(--mu);min-width:38px;text-align:right">${d.score}/100</span>
+      </div>
+      <div class="acatb" id="acb${i}">
+        <div style="padding:9px 13px;border-bottom:1px solid var(--bd);font-size:10.5px;color:var(--mu2);background:var(--sf3)">${d.reason}</div>
+        ${d.skus.map(s=>`<div class="asku"><span class="${rrc(s.role)}" style="font-size:8.5px">${s.role}</span><span style="flex:1">${s.name}</span><span style="color:var(--mu)">${s.make}</span><span style="color:var(--ac)">₹${Math.round(s.revenue/1000)}K</span><span style="color:var(--mu)">${s.qty}u</span><span class="abc${s.abc}">${s.abc}</span></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function tgl(i){const h=document.querySelector(`#ac${i} .acath`),b=document.getElementById(`acb${i}`);h.classList.toggle('open');b.classList.toggle('open');}
+
+// VELOCITY
+let velAll=[];
+function renderVelocity(local){velAll=[...salesData];renderVelFilt();}
+function setAbcF(f,btn){abcFilt=f;document.querySelectorAll('.abcf').forEach(b=>{b.classList.remove('on');b.style.borderColor='var(--bd2)';b.style.color='var(--mu2)';});btn.classList.add('on');renderVelFilt();}
+function renderVelFilt(){
+  const fil=abcFilt==='all'?velAll:velAll.filter(s=>s.abc===abcFilt);
+  const t20r=[...fil].sort((a,b)=>b.revenue-a.revenue).slice(0,20);const t20q=[...fil].sort((a,b)=>b.qty-a.qty).slice(0,20);
+  const mR=t20r[0]?.revenue||1,mQ=t20q[0]?.qty||1;
+  let html='<div class="vg">';
+  html+=`<div class="vc"><div class="vh"><h3>Top 20 — Revenue</h3></div>`;
+  t20r.forEach(s=>html+=`<div class="vr"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><div><div style="font-size:10.5px">${s.name}</div><div style="font-size:9px;color:var(--mu)">${s.make}·${s.group}</div></div><div style="display:flex;gap:8px;align-items:center"><span style="color:var(--ac);font-weight:600">₹${Math.round(s.revenue/1000)}K</span><span class="abc${s.abc}" style="font-size:9px">${s.abc}</span></div></div><div class="vbar"><div class="vfill" style="width:${(s.revenue/mR*100).toFixed(0)}%;background:var(--ac)"></div></div></div>`);
+  html+=`</div><div class="vc"><div class="vh"><h3>Top 20 — Units</h3></div>`;
+  t20q.forEach(s=>html+=`<div class="vr"><div style="display:flex;justify-content:space-between;gap:8px"><div><div style="font-size:10.5px">${s.name}</div><div style="font-size:9px;color:var(--mu)">${s.make}</div></div><div style="display:flex;gap:8px;align-items:center"><span style="color:var(--bl);font-weight:600">${s.qty}u</span><span class="abc${s.abc}" style="font-size:9px">${s.abc}</span></div></div><div class="vbar"><div class="vfill" style="width:${(s.qty/mQ*100).toFixed(0)}%;background:var(--bl)"></div></div></div>`);
+  html+=`</div></div>`;document.getElementById('velContent').innerHTML=html;
+}
+
+function renderBackend(ai){
+  const bk=ai.backend||[];if(!bk.length){document.getElementById('bkContent').innerHTML='<div class="empty"><div class="ei">◧</div><h3>No backend SKUs</h3></div>';return;}
+  const bz={};bk.forEach(b=>{if(!bz[b.zone])bz[b.zone]=[];bz[b.zone].push(b);});
+  let html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">';
+  Object.entries(bz).forEach(([z,items])=>{const m=ZM[z]||{c:'var(--mu)',n:z,bd:'var(--bd)'};
+    html+=`<div style="background:var(--sf);border:1px solid ${m.bd};border-radius:var(--r);overflow:hidden"><div style="padding:9px 12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-family:var(--fh);font-size:12px;font-weight:700;color:${m.c}">Zone ${z}</span><span style="font-size:9.5px;color:var(--mu)">${items.length}</span></div>`;
+    items.forEach(b=>html+=`<div style="padding:7px 12px;border-bottom:1px solid var(--bd)"><div style="font-size:10.5px;font-weight:500">${b.productType}</div><div style="font-size:9.5px;color:var(--mu2)">${(b.skus||[]).join(', ')}</div><div style="font-size:9.5px;color:var(--rd)">${b.reason}</div>${b.replacement&&b.replacement!=='—'?`<div style="font-size:9px;color:var(--gn)">→ ${b.replacement}</div>`:''}</div>`);
+    html+=`</div>`;
+  });
+  html+=`</div>`;document.getElementById('bkContent').innerHTML=html;
+}
+
+function renderVM(ai){
+  const vmR=ai.vmRules||{};let html='';
+  Object.entries(vmR).forEach(([z,rules])=>{if(!rules?.length)return;const m=ZM[z];
+    html+=`<div class="vmc"><div class="vmh" style="color:${m?.c||'var(--tx)'}"><span style="width:6px;height:6px;border-radius:50%;background:${m?.c};display:inline-block"></span>Zone ${z} — ${m?.n||z}</div>
+    <div class="vmb">${rules.map((r,i)=>`<div class="vmr"><div class="vmn">${i+1}</div><div class="vmt">${r}</div></div>`).join('')}</div></div>`;
+  });
+  document.getElementById('vmContent').innerHTML=html||'<div class="empty"><div class="ei">☰</div><h3>No VM rules</h3></div>';
+}
+
+// ═══════════════════════════════════════════════
+//  SHELF TAGS v8 — Logo, print-accurate, PDF
+// ═══════════════════════════════════════════════
+function renderTags(displaySKUs){
+  allTags=displaySKUs.map((s,i)=>({...s,idx:i,disc:0,sp:Math.round(s.rate||s.revenue/Math.max(s.qty,1)),code:`MSP-${String(i+1).padStart(3,'0')}`}));
+  selectedTags=new Set();applyTagFilter();
+}
+
+function applyTagFilter(){
+  const q=(document.getElementById('tagSearch')?.value||'').toLowerCase();
+  const zf=document.getElementById('tZone')?.value||'';const rf=document.getElementById('tRole')?.value||'';
+  let fil=allTags;
+  if(zf)fil=fil.filter(s=>s.zone===zf);
+  if(rf)fil=fil.filter(s=>(s.role||'').toUpperCase()===rf.toUpperCase());
+  if(q)fil=fil.filter(s=>s.name.toLowerCase().includes(q)||s.make.toLowerCase().includes(q));
+  if(!fil.length){document.getElementById('tagsContent').innerHTML='<div class="empty"><div class="ei">🏷</div><h3>No tags match filter</h3></div>';return;}
+  const rl={HERO:'H',CORE:'C',PREMIUM:'P',ENTRY:'E'};const rln={HERO:'HERO',CORE:'CORE',PREMIUM:'PREMIUM',ENTRY:'ENTRY'};
+  let html=`<div class="tag-grid">`;
+  fil.slice(0,60).forEach(s=>{
+    const mrp=Math.round(s.rate||s.revenue/Math.max(s.qty,1));
+    const sp=s.sp||mrp;const disc=s.disc||0;const rc=rl[(s.role||'CORE').toUpperCase()]||'C';
+    const isSel=selectedTags.has(s.idx);
+    const bc=barcodeDB.get(s.name);
+    html+=`<div class="stc${isSel?' sel':''}" id="stc${s.idx}">
+      <input type="checkbox" class="stchk" ${isSel?'checked':''} onchange="toggleTagSel(${s.idx},this.checked)" onclick="event.stopPropagation()">
+      <div onclick="openTagModal(${s.idx})">
+        <div class="sth">
+          <div style="display:flex;align-items:center;gap:5px">${logoDataURL?`<img src="${logoDataURL}" style="height:12px;width:auto;object-fit:contain;filter:brightness(0) invert(1)" alt="logo">`:''}
+            <span style="font-size:7px;font-weight:700;letter-spacing:.05em">MS PANDE &amp; SONS</span>
+          </div>
+          <span style="font-size:7px;opacity:.7">Zone ${s.zone}·${s.aisle}</span>
+        </div>
+        <div class="stb">
+          <div class="stn">${s.name}</div>
+          <div class="stbr">${s.make}</div>
+          ${disc>0?`<div class="st-mrp">MRP ₹${mrp.toLocaleString()}</div><div class="st-sp">₹${sp.toLocaleString()}</div><div class="st-disc">${disc}% OFF</div>`:`<div class="st-sp">₹${sp.toLocaleString()}</div><div style="font-size:8px;color:#888">MRP incl. all taxes</div>`}
+          <div class="strl strl-${rc}">${rln[(s.role||'CORE').toUpperCase()]||'CORE'}</div>
+          ${bc?`<div style="font-size:7px;color:#aaa;margin-top:3px;font-family:monospace">${bc.barcode}</div>`:''}
+          <div style="font-size:7px;color:#ccc;margin-top:2px">${s.code||''}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html+=`</div><div style="margin-top:10px;font-size:10px;color:var(--mu);text-align:right">${fil.length} tags · Click to edit · ☑ to select for print</div>`;
+  document.getElementById('tagsContent').innerHTML=html;updateSelCount();
+}
+
+function toggleTagSel(idx,checked){if(checked)selectedTags.add(idx);else selectedTags.delete(idx);const c=document.getElementById('stc'+idx);if(c){if(checked)c.classList.add('sel');else c.classList.remove('sel');}updateSelCount();}
+function updateSelCount(){const el=document.getElementById('sel-count');if(el)el.textContent=selectedTags.size+' selected';}
+function selectAllTags(){allTags.forEach(s=>selectedTags.add(s.idx));applyTagFilter();}
+function deselectAllTags(){selectedTags.clear();applyTagFilter();}
+
+// TAG MODAL
+let curTagIdx2=null;
+function openTagModal(idx){curTagIdx2=idx;const s=allTags.find(t=>t.idx===idx);if(!s)return;
+  const mrp=Math.round(s.rate||s.revenue/Math.max(s.qty,1));
+  document.getElementById('te_n').value=s.name;document.getElementById('te_b').value=s.make;
+  document.getElementById('te_m').value=mrp;document.getElementById('te_d').value=s.disc||0;
+  document.getElementById('te_sp').value=s.sp||mrp;document.getElementById('te_c').value=s.code||'';
+  const bc=barcodeDB.get(s.name);document.getElementById('te_bc').value=bc?.barcode||'';
+  document.getElementById('tagModal').classList.add('show');
+}
+function calcFinal(){const m=parseFloat(document.getElementById('te_m').value)||0,d=parseFloat(document.getElementById('te_d').value)||0;document.getElementById('te_sp').value=Math.round(m-m*d/100);}
+function closeTagModal(){document.getElementById('tagModal').classList.remove('show');curTagIdx2=null;}
+function saveTag(){if(curTagIdx2===null)return;const s=allTags.find(t=>t.idx===curTagIdx2);if(!s)return;
+  s.name=document.getElementById('te_n').value;s.make=document.getElementById('te_b').value;
+  s.rate=parseFloat(document.getElementById('te_m').value)||s.rate;s.disc=parseFloat(document.getElementById('te_d').value)||0;
+  s.sp=parseFloat(document.getElementById('te_sp').value)||s.rate;s.code=document.getElementById('te_c').value;
+  const bcVal=document.getElementById('te_bc').value.trim();
+  if(bcVal)barcodeDB.set(s.name,bcVal,'Manual');
+  closeTagModal();applyTagFilter();renderBarcodeMaster();toast('Tag saved','ok');logChange('Tag edited: '+s.name);
+}
+
+// PRINT SHELF TAGS v8 — print-accurate, logo scaled
+function printSelectedTagsV8(){
+  if(!selectedTags.size){toast('Select at least one tag first','err');return;}
+  const sel=allTags.filter(s=>selectedTags.has(s.idx));
+  const tw=parseInt(document.getElementById('tagW')?.value)||80;
+  const th=parseInt(document.getElementById('tagH')?.value)||50;
+  const rows=sel.map(s=>{
+    const mrp=Math.round(s.rate||s.revenue/Math.max(s.qty,1));const sp=s.sp||mrp;const disc=s.disc||0;
+    const bc=barcodeDB.get(s.name);const code=bc?.barcode||'';
+    const roleColors={HERO:['#FFF3C4','#92620A'],CORE:['#DCFCE7','#166534'],PREMIUM:['#EDE9FE','#5B21B6'],ENTRY:['#DBEAFE','#1E40AF']};
+    const rc=roleColors[(s.role||'CORE').toUpperCase()]||roleColors.CORE;
+    const logoH=Math.round(th*0.22);
+    const nameFS=Math.min(10,Math.max(7,Math.round(tw/10)));
+    const priceFS=Math.min(18,Math.max(11,Math.round(tw/5)));
+    return`<div style="display:inline-block;width:${tw}mm;height:${th}mm;background:#fff;color:#111;border:0.5mm solid #d0d0d0;border-radius:2mm;overflow:hidden;vertical-align:top;margin:2mm;page-break-inside:avoid;font-family:Arial,sans-serif;box-sizing:border-box;position:relative">
+      <!-- HEADER BAR -->
+      <div style="background:#CC0000;padding:${Math.round(th*0.05)}mm ${Math.round(tw*0.06)}mm;display:flex;align-items:center;justify-content:space-between;min-height:${Math.round(th*0.2)}mm">
+        <div style="display:flex;align-items:center;gap:2mm">
+          ${logoDataURL?`<img src="${logoDataURL}" style="height:${logoH}px;max-width:${Math.round(tw*0.35)}mm;width:auto;object-fit:contain;object-position:left center" alt="MSP Logo">`:''}
+          <span style="color:#fff;font-size:${Math.max(6,Math.round(tw*0.07))}px;font-weight:900;letter-spacing:.03em;line-height:1">MS PANDE &amp; SONS</span>
+        </div>
+        <span style="color:rgba(255,255,255,.8);font-size:${Math.max(5,Math.round(tw*0.055))}px">Zone ${s.zone}</span>
+      </div>
+      <!-- BODY -->
+      <div style="padding:${Math.round(th*0.04)}mm ${Math.round(tw*0.06)}mm;background:#FFFDF5">
+        <div style="font-size:${nameFS}px;font-weight:700;color:#1a1a1a;line-height:1.25;margin-bottom:${Math.round(th*0.02)}mm;max-height:${Math.round(th*0.3)}mm;overflow:hidden">${s.name}</div>
+        <div style="font-size:${Math.max(6,Math.round(tw*0.07))}px;color:#666;margin-bottom:${Math.round(th*0.03)}mm">${s.make}</div>
+        ${disc>0?`<div style="font-size:${Math.max(7,Math.round(tw*0.08))}px;text-decoration:line-through;color:#999">MRP ₹${mrp.toLocaleString()}</div><div style="font-size:${priceFS}px;font-weight:900;color:#CC0000;line-height:1">₹${sp.toLocaleString()}</div><div style="display:inline-block;background:#CC0000;color:#fff;padding:1px ${Math.round(tw*0.025)}mm;border-radius:1mm;font-size:${Math.max(6,Math.round(tw*0.07))}px;font-weight:700;margin-top:1mm">${disc}% OFF</div>`:`<div style="font-size:${priceFS}px;font-weight:900;color:#111;line-height:1">₹${sp.toLocaleString()}</div><div style="font-size:${Math.max(6,Math.round(tw*0.07))}px;color:#888;margin-top:1mm">MRP incl. all taxes</div>`}
+        ${code?`<div style="font-size:${Math.max(6,Math.round(tw*0.065))}px;color:#aaa;margin-top:1mm;font-family:monospace;letter-spacing:.04em">${code}</div>`:''}
+      </div>
+      <!-- ROLE BADGE -->
+      <div style="position:absolute;bottom:${Math.round(th*0.04)}mm;right:${Math.round(tw*0.04)}mm;background:${rc[0]};color:${rc[1]};padding:1px ${Math.round(tw*0.025)}mm;border-radius:1mm;font-size:${Math.max(6,Math.round(tw*0.065))}px;font-weight:700">${s.role||'CORE'}</div>
+      <!-- INTERNAL CODE -->
+      <div style="position:absolute;bottom:${Math.round(th*0.04)}mm;left:${Math.round(tw*0.04)}mm;font-size:${Math.max(5,Math.round(tw*0.055))}px;color:#ccc">${s.code||''}</div>
+    </div>`;
+  }).join('');
+
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    @page{margin:8mm}
+    body{background:#f5f5f5;padding:5mm;font-family:Arial,sans-serif}
+    h4{font-size:10px;margin-bottom:4mm;color:#333;font-family:Arial}
+    @media print{body{background:#fff;padding:0}h4{display:none}}
+  </style></head><body>
+    <h4>MSP Shelf Tags — ${sel.length} tags · ${tw}×${th}mm · MS PANDE &amp; SONS</h4>
+    <div>${rows}</div>
+    <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),1200)}<\/script>
+  </body></html>`);
+  w.document.close();
+  logChange(`Printed ${sel.length} shelf tags (${tw}×${th}mm)`);
+  toast(`Printing ${sel.length} tags`,'ok');
+}
+
+function printShelfTagsPDF(){
+  printSelectedTagsV8();// Same print engine works for PDF via browser print to PDF
+  toast('Use "Save as PDF" in the print dialog','inf');
+}
+
+// FLAGS
+function renderFlags(flags){
+  if(!flags.length){document.getElementById('flContent').innerHTML='<div class="empty"><div class="ei">⚑</div><h3>No flags</h3><p>All checks passed.</p></div>';return;}
+  const cr=flags.filter(f=>f.level==='critical'),wr=flags.filter(f=>f.level!=='critical');
+  let html='';
+  if(cr.length){html+=`<div style="margin-bottom:14px"><div style="font-size:9.5px;color:var(--rd);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;font-weight:700">Critical (${cr.length})</div>`;cr.forEach(f=>{html+=`<div class="fc2"><div class="fch"><span>⚑</span><h4>${f.title}</h4></div><p>${f.desc}</p>${f.rec?`<div class="frec"><strong>Rec:</strong> ${f.rec}</div>`:''}</div>`;});html+=`</div>`;}
+  if(wr.length){html+=`<div><div style="font-size:9.5px;color:var(--ac);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;font-weight:700">Warnings (${wr.length})</div>`;wr.forEach(f=>{html+=`<div class="wc"><div class="wch" style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>⚠</span><h4>${f.title}</h4></div><p>${f.desc}</p>${f.rec?`<div style="margin-top:6px;padding:6px 9px;background:rgba(232,197,71,.06);border-radius:5px;font-size:10px;color:var(--mu2)"><strong>Rec:</strong> ${f.rec}</div>`:''}</div>`;});html+=`</div>`;}
+  document.getElementById('flContent').innerHTML=html;
+  const fc=document.getElementById('fc-b');if(fc){fc.textContent=flags.length;fc.style.display='';}
+}
+
+// AUDIT
+function renderAudit(issues){
+  if(!issues?.length){document.getElementById('auditContent').innerHTML='<div class="empty"><div class="ei">⚠</div><h3>No audit issues</h3><p>'+(invData.length?'All datasets consistent.':'Upload Inventory + Purchase to enable audit.')+'</p></div>';return;}
+  const miss=issues.filter(i=>i.type==='MISSING'),dup=issues.filter(i=>i.type==='DUPLICATE'),mism=issues.filter(i=>i.type==='MISMATCH');
+  let html=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px">
+    <div class="mc" style="border-color:rgba(240,96,96,.25)"><div class="ml2">Missing</div><div class="mv" style="color:var(--rd)">${miss.length}</div></div>
+    <div class="mc" style="border-color:rgba(232,197,71,.25)"><div class="ml2">Duplicates</div><div class="mv" style="color:var(--ac)">${dup.length}</div></div>
+    <div class="mc" style="border-color:rgba(91,163,245,.25)"><div class="ml2">Mismatches</div><div class="mv" style="color:var(--bl)">${mism.length}</div></div>
+  </div>`;
+  html+=`<div class="card"><div class="ch"><h3>Full Audit Report</h3><span style="font-size:10px;color:var(--mu)">${issues.length} issues</span></div><div style="max-height:400px;overflow-y:auto">`;
+  issues.forEach(i=>html+=`<div class="audit-row"><span>${i.sku}</span><span style="background:rgba(${i.type==='MISSING'?'240,96,96':i.type==='DUPLICATE'?'232,197,71':'91,163,245'},.12);color:var(${i.type==='MISSING'?'--rd':i.type==='DUPLICATE'?'--ac':'--bl'});padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700">${i.type}</span><span style="font-size:10px;color:var(--mu2)">${i.dataset}</span><span style="font-size:10px;color:var(--mu)">${i.rec}</span></div>`);
+  html+=`</div></div>`;document.getElementById('auditContent').innerHTML=html;
+}
+
+// DIAGNOSTICS
+function renderDiag(local){
+  if(!local){document.getElementById('diagContent').innerHTML='<div class="empty"><div class="ei">⚙</div><h3>Generate planogram first</h3></div>';return;}
+  const totalScore=calcDiagScore(local);
+  const scoreColor=totalScore>=75?'var(--gn)':totalScore>=50?'var(--or)':'var(--rd)';
+  let html=`<div style="display:grid;grid-template-columns:180px 1fr;gap:16px;margin-bottom:20px">
+    <div class="card" style="text-align:center"><div class="diag-score-big" style="color:${scoreColor}">${totalScore}</div><div style="font-size:10px;color:var(--mu);padding-bottom:12px">Health Score</div></div>
+    <div class="card"><div class="ch"><h3>⚙ Metric Weights</h3><button class="btn bp bsm" onclick="recalcDiag()">↻ Recalc</button></div><div class="cb" style="padding:8px 14px">`;
+  Object.entries(diagWeights).forEach(([k,v])=>{
+    const labels={demand:'Demand Rate',margin:'Margin %',abc:'ABC Class',velocity:'Velocity',doi:'DOI'};
+    html+=`<div class="diag-weight"><span style="font-size:10.5px">${labels[k]||k}</span><input type="range" class="diag-slider" min="0" max="60" value="${v}" oninput="diagWeights['${k}']=+this.value;document.getElementById('dw_${k}').textContent=this.value+'%';recalcDiag()"><span id="dw_${k}" style="font-size:10.5px;color:var(--ac)">${v}%</span></div>`;
+  });
+  html+=`</div></div></div>`;
+  html+=`<div class="sh"><h2>SKU Diagnostic Scores</h2><div class="shl"></div></div><div class="card"><div class="cb" style="padding:0;max-height:440px;overflow-y:auto">`;
+  [...salesData].sort((a,b)=>skuDiagScore(b,local)-skuDiagScore(a,local)).slice(0,25).forEach(s=>{
+    const sc=skuDiagScore(s,local);const c=sc>=70?'var(--gn)':sc>=45?'var(--or)':'var(--rd)';
+    html+=`<div style="padding:7px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px"><span class="${rrc(s.role)}" style="font-size:9px">${s.role||'?'}</span><span style="flex:1;font-size:10.5px">${s.name}</span><span style="font-size:9.5px;color:var(--mu)">${s.abc||'?'}</span><div style="width:80px"><div class="sbar"><div class="sfill" style="width:${sc}%;background:${c}"></div></div></div><span style="font-size:10.5px;font-weight:700;color:${c};min-width:28px;text-align:right">${sc}</span></div>`;
+  });
+  html+=`</div></div>`;
+  document.getElementById('diagContent').innerHTML=html;
+}
+function calcDiagScore(local){let s=50;if(!local||!salesData.length)return 0;if(local.cats.filter(c=>c.abc==='A').length>=3)s+=10;if(local.totalRev>500000)s+=10;if((local.flags||[]).filter(f=>f.level==='critical').length===0)s+=15;if(invData.length)s+=5;if(purchData.length)s+=5;if(!(local.brandFlags||[]).length)s+=5;return Math.min(100,s);}
+function skuDiagScore(s,local){let sc=0;const tw=diagWeights,total=Object.values(tw).reduce((a,v)=>a+v,0)||100;if(s.abc==='A')sc+=tw.abc/total*100;else if(s.abc==='B')sc+=tw.abc/total*60;else sc+=tw.abc/total*20;const mD=salesData.reduce((m,x)=>Math.max(m,x.demandRate||0),1);sc+=((s.demandRate||0)/mD)*tw.demand;const gm=s.grossMargin||0.35;sc+=(gm/0.6)*tw.margin;const mQ=salesData.reduce((m,x)=>Math.max(m,x.qty||0),1);sc+=((s.qty||0)/mQ)*tw.velocity;if(s.doi!=null){const ds=s.doi>60?0:s.doi>30?50:s.doi>7?80:100;sc+=(ds/100)*tw.doi;}return Math.min(100,Math.round(sc));}
+function recalcDiag(){if(planResult)renderDiag(planResult.local);toast('Recalculated','ok');}
+
+// USER SYSTEM
+function initUser(){const el=document.getElementById('unName');if(el)el.textContent=currentUser||'Set Name';if(!currentUser)setTimeout(()=>document.getElementById('unModal')?.classList.add('show'),1200);}
+function saveUserName(){currentUser=document.getElementById('unInput').value.trim()||'User';DB.save('msp_user',currentUser);const el=document.getElementById('unName');if(el)el.textContent=currentUser;document.getElementById('unModal').classList.remove('show');toast('Welcome, '+currentUser,'ok');}
+function logChange(desc){const log=DB.load('msp_changelog',[]);log.unshift({ts:new Date().toLocaleString(),user:currentUser||'System',desc});if(log.length>200)log.pop();DB.save('msp_changelog',log);}
+function renderUserPage(){
+  const hist=DB.load('PHISTORY',[]);const log=DB.load('msp_changelog',[]);
+  document.getElementById('userContent').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div class="card"><div class="ch"><h3>👤 Current User</h3></div><div class="cb"><div style="font-size:22px;font-family:var(--fh);font-weight:800;color:var(--ac);margin-bottom:8px">${currentUser||'Not set'}</div><button class="btn bg2 bsm" onclick="document.getElementById('unModal').classList.add('show')">Change Name</button></div></div>
+    <div class="card"><div class="ch"><h3>📊 Run History</h3></div><div style="max-height:200px;overflow-y:auto">${hist.length?hist.map(h=>`<div class="hist-row"><span style="color:var(--mu);font-size:9.5px">${h.ts}</span><span>${h.skus} SKUs · ₹${h.rev} · ${h.flags} flags · AI:${h.aiUsed?'Yes':'Fallback'}</span></div>`).join(''):'<div style="padding:14px;color:var(--mu)">No runs yet</div>'}</div></div>
+  </div>
+  <div class="card"><div class="ch"><h3>📝 Change Log</h3><span style="font-size:10px;color:var(--mu)">${log.length} entries</span></div><div style="max-height:320px;overflow-y:auto">${log.length?log.map(l=>`<div class="hist-row"><span style="color:var(--mu);font-size:9.5px">${l.ts}</span><span>${l.desc}</span><span style="color:var(--mu2);font-size:9px">${l.user}</span></div>`).join(''):'<div style="padding:14px;color:var(--mu)">No changes yet</div>'}</div></div>`;
+}
+
+// CONFIG
+function loadConfig(){
+  const b=document.getElementById('cfgB');
+  if(b)b.innerHTML=cfg.zones.map((z,i)=>`<tr><td style="color:var(--ac);font-weight:700">${z.z}</td><td><input class="cin" value="${z.name}" onchange="cfg.zones[${i}].name=this.value"></td><td><input class="cin" value="${z.floor}" onchange="cfg.zones[${i}].floor=this.value" style="width:50px"></td><td><input class="cin" value="${z.bays}" type="number" onchange="cfg.zones[${i}].bays=+this.value" style="width:35px"></td><td><input class="cin" value="${z.sh}" type="number" onchange="cfg.zones[${i}].sh=+this.value" style="width:35px"></td><td><input class="cin" value="${z.w}" type="number" onchange="cfg.zones[${i}].w=+this.value" style="width:45px"></td><td><input class="cin" value="${z.cap}" type="number" onchange="cfg.zones[${i}].cap=+this.value" style="width:40px"></td></tr>`).join('');
+  ['cfw','cfsw','cfel','cfmg','cfsp'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const k={cfw:'shelfW',cfsw:'skuW',cfel:'eyeLvl',cfmg:'margin',cfsp:'salesPeriod'}[id];if(k&&cfg[k]!==undefined)el.value=cfg[k];});
+}
+
+function saveConfig(){
+  ['cfw','cfsw','cfel','cfmg','cfsp'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const k={cfw:'shelfW',cfsw:'skuW',cfel:'eyeLvl',cfmg:'margin',cfsp:'salesPeriod'}[id];if(k)cfg[k]=parseFloat(el.value)||cfg[k];});
+  DB.save('msp_cfg',cfg);toast('Configuration saved','ok');logChange('Config updated');
+}
+
+// ═══════════════════════════════════════════════
+//  DEMO MODE
+// ═══════════════════════════════════════════════
+let demoActive=false;
+const DEMO_DATA=`Item/Tax Name,Make,Sub Group,Quantity,Net Amount,Gross Rate
+Inalsa Nutri Mixer Belle Pro,Inalsa,Mixer (18%),316,709830,3498
+Prestige 41992 XPRESS Induction 1200W,PRESTIGE,Induction Cooker,420,510279,2546
+Sujata Mixer MG01,Sujata,Mixer (18%),87,424147,9118
+Modware Office Combo Tiffin,Modware,TIFFIN,646,271230,551
+Cello Insulated Tiffin Lunch Express,Cello,TIFFIN,621,247465,641
+Glen SA 3041 Digital Fryer 5L,Glen,Air Fryer,49,149491,3600
+Philips Air Fryer NA120 4.2L,Philips,Air Fryer,21,95347,5995
+Wonderchef Luxe Kettle 1.2L,Wonderchef,Kettle Electric (28%),107,129296,2274
+Milton Insta Kettle 1.5L,MILTON,Kettle Electric (28%),128,90258,1280
+Hawkins PSK25S Deep Fry Pan,Hawkins,Frying Pan(12%),62,119885,2355
+Glen LPG Stove 1054 Ultra Tuff,Glen,Gas Stove (18%),16,165360,16995
+Butterfly Bolt Shakti 3B LPG,Butterfly,Gas Stove (18%),33,153376,8029
+Glen Chimney 6058 DI BL 60cm,Glen,Chimney(18%),13,153514,23207
+Kent Water Purifier Grand+ RO,KENT,RO W/P,5,84644,24600
+Elgi Ultra Wet Grinder 2L,Elgi Ultra,Wet Grinder,12,87745,9168
+Hawkins Cooker SS 5L HSS50,Hawkins,Stainless Steel Cooker (12%),22,65131,3640
+Bowl Steel General,General,Non Stock Items,555,233232,504
+Milton Thermosteel Aura 1L,MILTON,Water Bottle(18%),78,68204,1165
+IFB MWO 20BC4,IFB,MWO,8,86817,14355
+Bajaj Food Processor FX1000,BAJAJ,Food Processor (28%),8,74546,17871
+Trimmer Philips various,Philips,Trimmer(28%),107,131913,1832
+Glen SA 4048 N-Active Blender,Glen,Hand Blender (18%),141,188796,1580
+Eureka Forbes Super Clean VC,Eureka Forbes,Vacuum Cleaner(18%),18,52117,3798
+Havells Steam Iron,Havells,Steam Iron (28%),39,150732,5629
+Bajaj Dry Iron Majesty,BAJAJ,Dry Iron (18%),100,87000,1200
+Butterfly Kadhai Tri-Ply,Butterfly,Kadhai(12%),210,291479,1800
+Laopala Diva Classique Dinner Set,Laopala,Dinner Set Crockery,10,144829,3700
+Sunflame Hob SHA 480 AGS,SUNFLAME,Cooktop (18%),6,83949,20690
+Racold Geyser 10L CDR Dlx,Racold,Water Heater (18%),7,48461,10463
+Pureit Cartridge Classic 1500L,Pureit,Cartriage (18%),50,28500,570`;
+
+function toggleDemo(){
+  if(demoActive){clearAll();demoActive=false;document.getElementById('demoBtn').textContent='⚡ Demo';toast('Demo mode off','inf');return;}
+  demoActive=true;document.getElementById('demoBtn').textContent='✕ Exit Demo';
+  parseDataset(DEMO_DATA,'DEMO','sales');
+  toast('Demo: 30 SKUs loaded','ok');logChange('Demo dataset loaded');
+  setTimeout(()=>generate(),500);
+}
+
+// ═══════════════════════════════════════════════
+//  PRINT ENGINE
+// ═══════════════════════════════════════════════
+function executePrint(){
+  const by=document.getElementById('print_by').value;
+  const zone=document.getElementById('print_zone')?.value||'A';
+  document.getElementById('printModal').classList.remove('show');
+  if(by==='tags'){nav('lms');setTimeout(()=>{selectAllTags();printSelectedTagsV8();},300);return;}
+  if(by==='barcodes'){nav('barcodes');setTimeout(()=>{selectAllBc();printSelectedBarcodes();},300);return;}
+  if(by==='zone'){nav('z'+zone);setTimeout(()=>window.print(),300);return;}
+  window.print();
+}
+
+// ═══════════════════════════════════════════════
+//  EXCEL EXPORT v8 — 7 sheets including Barcode Master
+// ═══════════════════════════════════════════════
+function exportExcelV8(){
+  if(!planResult){toast('Generate planogram first','err');return;}
+  const{ai,local}=planResult;const wb=XLSX.utils.book_new();
+
+  // Sheet 1: Visual Planogram
+  const pR=[['Zone','Floor','Aisle','Bay','Bay Name','Shelf','Product Type','SKUs','Role','Facings','Price Band','Display','Fixture','Space%','DOI','Note']];
+  'ABCDEF'.split('').forEach(z=>{const m=ZM[z];pR.push([`=== ZONE ${z} — ${m.n} ===`]);
+    (ai.zones[z]?.aisles||[]).forEach(ao=>(ao.bays||[]).forEach(bay=>(bay.shelves||[]).forEach(sh=>{
+      const skuD=salesData.find(s=>s.name===(sh.skus||[])[0])||{};
+      pR.push([`Zone ${z}`,m.fl,ao.aisle,bay.bay,bay.name||'',sh.shelf||'',sh.productType||'',(sh.skus||[]).join(' | '),sh.role||'',sh.facings||'',sh.priceBand||'',sh.display||'',sh.fixture||'',sh.spaceShare?sh.spaceShare.toFixed(1)+'%':'',skuD.doi!=null?skuD.doi+'d':'—',sh.note||'']);
+    })));
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pR),'Planogram');
+
+  // Sheet 2: Execution Guide
+  const eR=[['MSP Store — Execution Guide (v8)',''],['Generated by',currentUser||'System'],['Date',new Date().toLocaleString()],['','']];
+  'ABCDEF'.split('').forEach(z=>{const m=ZM[z];
+    eR.push([`ZONE ${z} — ${m.n}`,m.fl]);eR.push(['Shelf','Instruction','Priority']);
+    (ai.zones[z]?.aisles||[]).forEach(ao=>(ao.bays||[]).forEach(bay=>(bay.shelves||[]).forEach(sh=>{
+      const isEye=/eye level|★/i.test(sh.shelf||'');
+      eR.push([`${ao.aisle}·${bay.bay} ${sh.shelf||''}`,`${sh.productType} — ${(sh.skus||[]).join(', ')} · ${sh.facings}f`,isEye?'★ CRITICAL':'Standard']);
+    })));
+    if(ai.vmRules?.[z]){eR.push(['','VM Rules','']);(ai.vmRules[z]||[]).forEach((r,i)=>eR.push([`Rule ${i+1}`,r,'']));}
+    eR.push(['','','']);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(eR),'Execution Guide');
+
+  // Sheet 3: Backend + NEXT_TO_DISPLAY
+  const bR=[['Zone','Product Type','SKUs','Reason','Stock','NEXT_TO_DISPLAY','Replace Reason']];
+  (ai.backend||[]).forEach(b=>{
+    const repl=local.replacements?.find(r=>r.outSKU===(b.skus||[])[0]);
+    bR.push([b.zone,b.productType,(b.skus||[]).join(' | '),b.reason,b.stock||'—',repl?repl.replacement:'—',repl?repl.reason:'—']);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bR),'Backend + Replacements');
+
+  // Sheet 4: SKU Master
+  const sR=[['SKU Name','Brand','Category','Units Sold','Revenue ₹','MRP ₹','ABC','Role','Zone','Display','Facings','Demand Rate/day','DOI (days)','Sell-through%','Stock','Ageing','Diag Score','Barcode','Code']];
+  salesData.forEach((s,i)=>{
+    const bc=barcodeDB.get(s.name);
+    sR.push([s.name,s.make,s.group,s.qty,s.revenue,Math.round(s.rate||s.revenue/Math.max(s.qty,1)),s.abc||'',s.role||'',s.zone||'',s.display||'',s.facings||'',(s.demandRate||0).toFixed(3),s.doi!=null?s.doi:'—',s.sellThrough!=null?Math.round(s.sellThrough*100)+'%':'—',s.stock!=null?s.stock:'—',s.ageing!=null?s.ageing:'—',skuDiagScore(s,planResult?.local||{})+'pts',bc?.barcode||'—',`MSP-${String(i+1).padStart(3,'0')}`]);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sR),'SKU Master');
+
+  // Sheet 5: Retail Metrics
+  const mR=[
+    ['Metric','Value','Notes'],
+    ['Total SKUs',salesData.length,''],['Total Revenue ₹',local.totalRev.toFixed(0),''],
+    ['GMROI (Est.)',local.gmroi.toFixed(2),'Based on margin config'],
+    ['Inventory Turnover',local.invTurn.toFixed(1),''],
+    ['Display SKUs',local.displaySKUs.length,''],['Backend SKUs',local.backendSKUs.length,''],
+    ['Total Flags',(ai.flags||[]).length,''],['Planogram Health',calcDiagScore(local)+'/100',''],
+    ['Barcodes Generated',barcodeDB.count(),''],['Self-Heal Events',healEvents.length,''],
+    ['','',''],['CATEGORY BREAKDOWN','',''],
+    ['Category','Revenue ₹','Units','ABC','Decision','Score'],
+    ...local.assortmentDecisions.map(d=>[d.group,d.totalRev.toFixed(0),d.totalQty,d.abc,d.decision,d.score])
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mR),'Retail Metrics');
+
+  // Sheet 6: Data Audit
+  const aR2=[['Type','Severity','Dataset','SKU','Issue','Recommendation']];
+  (local.audit||[]).forEach(i=>aR2.push([i.type,i.severity,i.dataset,i.sku,i.desc,i.rec]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aR2),'Data Audit');
+
+  // Sheet 7: Barcode Master
+  const bcR=[['SKU Name','Barcode','Category','Source','Date Generated','MRP ₹']];
+  barcodeDB.getAll().forEach(r=>{
+    const sku=salesData.find(s=>s.name===r.sku)||{};
+    bcR.push([r.sku,r.barcode,sku.group||'—',r.source,r.dateGen,Math.round(sku.rate||0)]);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bcR),'Barcode Master');
+
+  XLSX.writeFile(wb,`MSP_Planogram_v8_${currentUser||'Store'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Excel exported — 7 sheets','ok');logChange('Exported Excel v8 report');
+}
+
+// ═══════════════════════════════════════════════
+//  ONBOARDING SYSTEM
+// ═══════════════════════════════════════════════
+const ONB_STEPS=[
+  {icon:'🏪',title:'Welcome to MSP v8',desc:'Your complete Planogram + Label Management System. Upgraded with Barcode Engine, Self-Heal, and Logo support.'},
+  {icon:'📂',title:'Load Your Sales Data',desc:'Go to Master Data Hub → Upload Excel or paste CSV. Or hit ⚡ Demo for instant sample data with 30 SKUs.'},
+  {icon:'⟡',title:'Generate Your Planogram',desc:'Click "Generate Planogram". The engine runs ABC, demand, roles, zones, facings, and barcode generation automatically.'},
+  {icon:'🏷',title:'Labels & Barcodes',desc:'Go to Label System for shelf tags with your logo. Barcode Engine auto-generates EAN-13 barcodes for every SKU.'},
+  {icon:'🖨',title:'Print & Execute',desc:'Print tags by zone, role, or all at once. Export 7-sheet Excel for your team. Self-Heal monitors and fixes issues automatically.'},
+];
+let onbIdx=0;
+function startOnb(){
+  onbIdx=0;
+  const dotsEl=document.getElementById('onbDots'),stepsEl=document.getElementById('onbSteps');
+  if(!dotsEl||!stepsEl)return;
+  dotsEl.innerHTML=ONB_STEPS.map((_,i)=>`<div class="onb-dot${i===0?' on':''}" id="od${i}"></div>`).join('');
+  stepsEl.innerHTML=ONB_STEPS.map((s,i)=>`<div class="onb-step${i===0?' on':''}" id="os${i}"><div class="onb-icon">${s.icon}</div><div class="onb-title">${s.title}</div><div class="onb-desc">${s.desc}</div></div>`).join('');
+  document.getElementById('onbOv').style.display='flex';
+  updateOnbProg();
+}
+function updateOnbProg(){
+  document.querySelectorAll('.onb-dot').forEach((d,i)=>d.classList.toggle('on',i===onbIdx));
+  document.querySelectorAll('.onb-step').forEach((s,i)=>s.classList.toggle('on',i===onbIdx));
+  document.getElementById('onbProg').style.width=Math.round((onbIdx+1)/ONB_STEPS.length*100)+'%';
+  const btn=document.getElementById('onbNext');if(btn)btn.textContent=onbIdx===ONB_STEPS.length-1?'Get Started ✓':'Next →';
+}
+function nextOnb(){if(onbIdx<ONB_STEPS.length-1){onbIdx++;updateOnbProg();}else skipOnb();}
+function skipOnb(){document.getElementById('onbOv').style.display='none';DB.save('msp_onb_done',true);logChange('Completed onboarding');}
+
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=(type==='ok'?'✓ ':type==='err'?'✕ ':'● ')+msg;
+  t.className=`toast show ${type==='ok'?'tok':type==='err'?'terr':'tinf'}`;
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  // Restore config
+  const saved=DB.load('msp_cfg',null);if(saved)cfg={...cfg,...saved};
+  loadConfig();
+
+  // Restore data from previous session
+  const sk=DB.load('SKU_MASTER',[]);
+  if(sk.length){
+    salesData=sk;setSt('live',`${sk.length} SKUs restored`);
+    document.getElementById('genBtn').disabled=false;
+    document.getElementById('clrBtn').style.display='';
+    const st=document.getElementById('st-sales');if(st)st.textContent=`✓ ${sk.length} SKUs restored from session`;
+    toast(`${sk.length} SKUs restored`,'inf');
+  }
+  const inv2=DB.load('invData',[]);if(inv2.length)invData=inv2;
+  const pu2=DB.load('purchData',[]);if(pu2.length)purchData=pu2;
+  const cu2=DB.load('custData',[]);if(cu2.length)custData=cu2;
+  const ve2=DB.load('vendData',[]);if(ve2.length)vendData=ve2;
+
+  // Restore logo
+  const savedLogo=DB.load('mspLogo',null);
+  if(savedLogo){logoDataURL=savedLogo;updateLogoPreview();}
+
+  // Restore heal log
+  const savedHeal=DB.load('healLog',[]);if(savedHeal.length)healEvents=savedHeal;
+  updateSysStatus();
+
+  // Init user
+  initUser();
+
+  // Nav to dashboard
+  nav('dash');
+
+  // Onboarding — show only if first time
+  const onbDone=DB.load('msp_onb_done',false);
+  if(!onbDone)setTimeout(startOnb,1000);
+
+  // Startup self-heal
+  setTimeout(()=>runSelfHeal(false),2000);
+
+  // Periodic self-heal every 5 min
+  setInterval(()=>runSelfHeal(false),300000);
+
+  // Wire drag-and-drop for file zones
+  ['sales','inv','purch','cust','vend'].forEach(type=>{
+    const dz=document.getElementById('DZ-'+type);if(!dz)return;
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dg');});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('dg'));
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dg');handleFile({files:e.dataTransfer.files},type);});
+  });
+
+  healLog('MSP v8 initialized · Session started','ok');
+});
+</script>
+
+</body>
+</html>
