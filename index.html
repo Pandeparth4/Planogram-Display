@@ -1,0 +1,951 @@
+const {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  Header, Footer, AlignmentType, HeadingLevel, BorderStyle, WidthType,
+  ShadingType, VerticalAlign, PageNumber, PageBreak, LevelFormat,
+  TabStopType, TabStopPosition
+} = require('docx');
+const fs = require('fs');
+
+// ─────────────────────────────────────────────────────────────────
+// COLOUR PALETTE
+// ─────────────────────────────────────────────────────────────────
+const C = {
+  navy:    '1B2A4A',
+  blue:    '1F4E79',
+  teal:    '0D6E75',
+  gold:    'B8860B',
+  orange:  'C45911',
+  red:     'C00000',
+  green:   '1F6B3B',
+  slate:   '4A5568',
+  silver:  'E8EDF2',
+  lightBg: 'F0F4F8',
+  headerBg:'1B2A4A',
+  altRow:  'EEF3F7',
+  white:   'FFFFFF',
+  accent:  '0D6E75',
+};
+
+// ─────────────────────────────────────────────────────────────────
+// BORDER HELPERS
+// ─────────────────────────────────────────────────────────────────
+const border = (color='CCCCCC', size=4) => ({ style: BorderStyle.SINGLE, size, color });
+const noBorder = () => ({ style: BorderStyle.NONE, size: 0, color: 'FFFFFF' });
+const borders = (c='CCCCCC') => ({ top: border(c), bottom: border(c), left: border(c), right: border(c) });
+const headerBorders = () => ({ top: border(C.navy,8), bottom: border(C.teal,6), left: noBorder(), right: noBorder() });
+
+// ─────────────────────────────────────────────────────────────────
+// PARAGRAPH HELPERS
+// ─────────────────────────────────────────────────────────────────
+const space = (before=80,after=80) => ({ spacing: { before, after } });
+
+function h1(text) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_1,
+    children: [new TextRun({ text, font:'Arial', size:32, bold:true, color:C.navy })],
+    ...space(360,160),
+    border: { bottom: { style: BorderStyle.SINGLE, size:8, color:C.teal, space:4 } }
+  });
+}
+function h2(text) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_2,
+    children: [new TextRun({ text, font:'Arial', size:26, bold:true, color:C.blue })],
+    ...space(280,120),
+  });
+}
+function h3(text) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_3,
+    children: [new TextRun({ text, font:'Arial', size:22, bold:true, color:C.teal })],
+    ...space(200,80),
+  });
+}
+function h4(text) {
+  return new Paragraph({
+    children: [new TextRun({ text, font:'Arial', size:20, bold:true, color:C.slate })],
+    ...space(160,60),
+  });
+}
+function body(text, opts={}) {
+  return new Paragraph({
+    children: [new TextRun({ text, font:'Arial', size:20, color:'222222', ...opts })],
+    ...space(60,60),
+  });
+}
+function bodyB(text) { return body(text, {bold:true}); }
+
+function formula(text, label='') {
+  const children = [new TextRun({ text: label ? `${label}: ` : '', font:'Arial', size:19, bold:true, color:C.blue })];
+  children.push(new TextRun({ text, font:'Courier New', size:19, bold:true, color:C.teal }));
+  return new Paragraph({ children, ...space(80,80),
+    shading:{ fill:C.lightBg, type:ShadingType.CLEAR },
+    indent:{ left:400 }
+  });
+}
+
+function rule(text, prefix='RULE') {
+  return new Paragraph({
+    children:[
+      new TextRun({ text:`${prefix}  `, font:'Arial', size:19, bold:true, color:C.white }),
+      new TextRun({ text, font:'Arial', size:19, color:C.white }),
+    ],
+    ...space(80,80),
+    shading:{ fill:C.navy, type:ShadingType.CLEAR },
+    indent:{ left:200, right:200 },
+  });
+}
+
+function bullet(text, level=0) {
+  return new Paragraph({
+    numbering:{ reference:'bullets', level },
+    children:[new TextRun({ text, font:'Arial', size:20, color:'333333' })],
+    ...space(40,40),
+  });
+}
+
+function divider() {
+  return new Paragraph({
+    children:[new TextRun({ text:'', size:4 })],
+    border:{ bottom:{ style:BorderStyle.SINGLE, size:4, color:'CCCCCC', space:2 } },
+    ...space(120,120),
+  });
+}
+
+function pageBreak() {
+  return new Paragraph({ children:[new PageBreak()] });
+}
+
+function callout(label, text, color=C.orange) {
+  return new Paragraph({
+    children:[
+      new TextRun({ text:`${label}  `, font:'Arial', size:18, bold:true, color }),
+      new TextRun({ text, font:'Arial', size:18, color:'333333' }),
+    ],
+    shading:{ fill:'FFF8F0', type:ShadingType.CLEAR },
+    border:{
+      left:{ style:BorderStyle.SINGLE, size:12, color, space:6 },
+      top:noBorder(), bottom:noBorder(), right:noBorder()
+    },
+    indent:{ left:240 },
+    ...space(80,80),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TABLE HELPERS
+// ─────────────────────────────────────────────────────────────────
+const W = 9360; // content width in DXA (US Letter 1" margins)
+
+function makeTable(headers, rows, colWidths) {
+  const totalW = colWidths.reduce((a,b)=>a+b,0);
+  
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: headers.map((h,i) => new TableCell({
+      width:{ size:colWidths[i], type:WidthType.DXA },
+      shading:{ fill:C.headerBg, type:ShadingType.CLEAR },
+      borders: borders(C.navy),
+      margins:{ top:100, bottom:100, left:140, right:140 },
+      verticalAlign: VerticalAlign.CENTER,
+      children:[new Paragraph({ children:[new TextRun({ text:h, font:'Arial', size:18, bold:true, color:C.white })], alignment:AlignmentType.LEFT })]
+    }))
+  });
+
+  const dataRows = rows.map((row,ri) => new TableRow({
+    children: row.map((cell,ci) => {
+      const isAlt = ri%2===1;
+      const isBold = ci===0;
+      const cellText = Array.isArray(cell) ? cell : [cell];
+      return new TableCell({
+        width:{ size:colWidths[ci], type:WidthType.DXA },
+        shading:{ fill: isAlt ? C.altRow : C.white, type:ShadingType.CLEAR },
+        borders: borders('DDDDDD'),
+        margins:{ top:80, bottom:80, left:120, right:120 },
+        verticalAlign: VerticalAlign.TOP,
+        children: cellText.map(t => new Paragraph({
+          children:[new TextRun({ text:String(t), font:'Arial', size:18, bold:isBold&&ci===0, color:'222222' })]
+        }))
+      });
+    })
+  }));
+
+  return new Table({
+    width:{ size:totalW, type:WidthType.DXA },
+    columnWidths: colWidths,
+    rows:[headerRow, ...dataRows],
+    margins:{ top:0, bottom:0, left:0, right:0 }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION TITLE BANNER
+// ─────────────────────────────────────────────────────────────────
+function sectionBanner(num, title) {
+  return new Table({
+    width:{ size:W, type:WidthType.DXA },
+    columnWidths:[1200, W-1200],
+    rows:[new TableRow({ children:[
+      new TableCell({
+        width:{ size:1200, type:WidthType.DXA },
+        shading:{ fill:C.teal, type:ShadingType.CLEAR },
+        borders: borders(C.teal),
+        margins:{ top:120, bottom:120, left:160, right:160 },
+        verticalAlign: VerticalAlign.CENTER,
+        children:[new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text:num, font:'Arial', size:32, bold:true, color:C.white })] })]
+      }),
+      new TableCell({
+        width:{ size:W-1200, type:WidthType.DXA },
+        shading:{ fill:C.navy, type:ShadingType.CLEAR },
+        borders: borders(C.navy),
+        margins:{ top:120, bottom:120, left:240, right:160 },
+        verticalAlign: VerticalAlign.CENTER,
+        children:[new Paragraph({ children:[new TextRun({ text:title, font:'Arial', size:26, bold:true, color:C.white })] })]
+      }),
+    ]})]
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// COVER PAGE
+// ─────────────────────────────────────────────────────────────────
+function coverPage() {
+  return [
+    new Paragraph({ spacing:{ before:0,after:0 }, children:[new TextRun({ text:'', size:4 })] }),
+    new Table({ width:{ size:W, type:WidthType.DXA }, columnWidths:[W],
+      rows:[new TableRow({ children:[new TableCell({
+        width:{ size:W, type:WidthType.DXA },
+        shading:{ fill:C.navy, type:ShadingType.CLEAR },
+        borders: borders(C.navy),
+        margins:{ top:800, bottom:600, left:400, right:400 },
+        children:[
+          new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:80}, children:[new TextRun({ text:'RETAIL DISPLAY & SPACE PLANNING', font:'Arial', size:14, color:'9BB5D0', bold:true })] }),
+          new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:160}, children:[new TextRun({ text:'INTELLIGENCE FRAMEWORK', font:'Arial', size:14, color:'9BB5D0', bold:true })] }),
+          new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:120}, children:[new TextRun({ text:'Enterprise-Grade Planogram & Category Management System', font:'Arial', size:28, bold:true, color:C.white })] }),
+          new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:400}, children:[new TextRun({ text:'From Shopper Science to Execution-Ready Decision Rules', font:'Arial', size:20, color:'B0C8E0' })] }),
+          new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:80}, children:[new TextRun({ text:'Director-Level Reference  |  May 2026', font:'Arial', size:18, color:'9BB5D0' })] }),
+          new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:0}, children:[new TextRun({ text:'Domestic Appliances & Kitchenware Retail  |  Multi-Zone Store Architecture', font:'Arial', size:18, color:'9BB5D0' })] }),
+        ]
+      })]})]}),
+    new Paragraph({ spacing:{before:240,after:120}, children:[new TextRun({ text:'HOW TO USE THIS FRAMEWORK', font:'Arial', size:18, bold:true, color:C.teal })] }),
+    body('This document translates fifty years of retail science, global category management practice, and shopper behaviour research into a complete, implementation-ready intelligence system. Every principle is explained with its underlying mechanism — the WHY — because rules without rationale cannot be adapted. Every formula is defined. Every decision rule is actionable. The framework is structured to feed directly into a planogram engine, a KPI dashboard, or a store operations system.'),
+    body('Read Sections 1–4 for the scientific and strategic foundation. Sections 5–8 for the operational system. Sections 9–12 for the feedback and optimisation loop.'),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 1 — SHOPPER DECISION TREE
+// ─────────────────────────────────────────────────────────────────
+function section1() {
+  return [
+    sectionBanner('01', 'Shopper Decision Tree — How Customers Actually Choose'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({ text:'', size:4 })] }),
+    h2('1.1  What the CDT Is and Why It Is the Root of Everything'),
+    body('The Consumer Decision Tree (CDT) is a hierarchical map of the exact sequence of mental filters a customer applies when selecting a product within a category. It is not a marketing construct — it is a behavioural observation. The CDT answers: what is the first thing a customer decides? What is the second? The third? Each level of the tree filters the remaining options until a single product is chosen or the customer abandons the decision.'),
+    body('The CDT is the most important input into planogram design because the physical arrangement of a shelf must mirror the customer\'s decision sequence. When a shelf is organised by a logic that does not match how customers think — for example, organised by supplier brand blocks when customers actually decide by price tier first — the customer must mentally decode the shelf, and cognitive friction increases the probability of abandonment. When the shelf mirrors the CDT, the customer\'s eye moves naturally through the decision in the correct sequence and conversion rate rises.'),
+    callout('RESEARCH BASIS', 'TELUS Agriculture & Consumer Goods documented: "When it\'s easy for shoppers to find a product, there is an increase in conversion, basket size, and satisfaction." The CDT is the mechanism that creates that ease.', C.teal),
+    h2('1.2  Universal CDT Structure — The Four-Level Hierarchy'),
+    makeTable(
+      ['Decision Level','What Customer Asks','Common First Criteria','Shelf Organisation Implication'],
+      [
+        ['Level 1 — Category Entry','Do I need this category at all?','Occasion-triggered vs routine','Wayfinding and category signage'],
+        ['Level 2 — Primary Filter','What type / price tier / brand?','Price tier is most common L2 for value-sensitive customers; brand for brand-loyal categories','Organise shelf left-to-right by primary filter'],
+        ['Level 3 — Secondary Filter','What specification within my L2 filter?','Wattage, capacity, material, colour','Group within L2 blocks by spec attribute'],
+        ['Level 4 — Final Selection','Which specific SKU?','Facing count, packaging appeal, availability','Dominant facing on shelf = perceived recommendation'],
+      ],
+      [2000,2400,2000,2960]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('1.3  Category-Specific CDT Examples — Appliance & Kitchenware Context'),
+    h3('Mixer Grinder CDT'),
+    makeTable(
+      ['Level','Decision','Shelf Rule'],
+      [
+        ['L1','Price tier — budget: sub-₹3,000 / mid: ₹3–6,000 / premium: ₹6,000+','Organise shelf left-to-right by price tier'],
+        ['L2','Wattage — 500W / 750W / 1000W+','Within each price band, sort by wattage ascending'],
+        ['L3','Brand — within wattage/price shortlist','Vertical brand blocking within each spec column'],
+        ['L4','Jar configuration, colour, warranty','Hero SKU per brand at eye level with most facings'],
+      ],
+      [1200,3500,4660]
+    ),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h3('Gas Stove CDT'),
+    makeTable(
+      ['Level','Decision','Shelf Rule'],
+      [
+        ['L1','Number of burners — 2/3/4','Organise fixtures left-to-right by burner count'],
+        ['L2','Material — toughened glass vs SS body','Within each burner group, separate by material'],
+        ['L3','Brand','Vertical brand blocks within material groups'],
+        ['L4','Auto-ignition, warranty, colour','Hero SKU at eye level; spec card posted adjacent'],
+      ],
+      [1200,3500,4660]
+    ),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('1.4  How to Build a CDT — The 5-Step Field Method'),
+    bullet('OBSERVE: Stand at the fixture for 20 minutes. Watch 10 customers shop the category without intervening. Record every product picked up, every comparison made, every question asked.'),
+    bullet('TRANSACT: Pull multi-item basket data from POS for this category. What do customers buy together? The basket reveals the decision sequence in revealed behaviour — the most honest data source.'),
+    bullet('INTERVIEW: Ask 5 customers immediately after purchase: "What was the first thing you decided when choosing this?" Record verbatim. Do not suggest answers.'),
+    bullet('SEQUENCE: Rank decision criteria by frequency across your observations and interviews. The most frequent first criterion is Level 1 of your CDT.'),
+    bullet('VALIDATE: Reorganise the shelf to mirror the CDT. Measure category conversion rate and UPT at 30 and 60 days. A validated CDT produces measurable improvement. An invalid CDT does not.'),
+    callout('DECISION RULE', 'If a supplier requests brand-block organisation and your CDT shows customers decide by price tier first, the supplier is asking you to organise the shelf for their benefit, not the customer\'s. Your data is your leverage. CDT always overrides supplier preference.', C.red),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 2 — VISUAL ATTENTION & EYE TRACKING
+// ─────────────────────────────────────────────────────────────────
+function section2() {
+  return [
+    sectionBanner('02', 'Visual Attention & Eye Tracking — Where Customers Look and Why'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('2.1  The Physiology of Shelf Scanning'),
+    body('Human eye movement in a retail environment is not random. It follows predictable patterns governed by three biological mechanisms: saccades (rapid, ballistic eye jumps to new fixation points), peripheral vision (detecting contrast and movement at the edges of the visual field), and cognitive load management (the eye avoids visual complexity and gravitates to structured, legible environments). Understanding these mechanisms allows a retailer to predict where a customer will look, and therefore where to place the products they most want to sell.'),
+    h2('2.2  The Eye-Level Profit Zone'),
+    body('The single most documented finding in retail visual science: products placed at eye level — defined as 36 to 60 inches (91 to 152 cm) from the floor — receive approximately 70% of all visual fixations on a shelf. This is the profit zone. The mechanism is simple: the human eye defaults to a resting position roughly at nose level. The first sweep of a shelf occurs in this horizontal band. Products above or below this band require deliberate, effortful eye movement to find — and most customers will not make that effort.'),
+    makeTable(
+      ['Zone','Height from Floor','Visual Attention Share','Recommended Content'],
+      [
+        ['Top shelf','Above 60 inches (152cm)','~8%','Category signage, brand fascia, backup stock'],
+        ['Eye level — Upper','48–60 inches (122–152cm)','~35%','Power SKUs, Better-tier anchor products, hero items'],
+        ['Eye level — Core','36–48 inches (91–122cm)','~35%','Second-best sellers, Good-Better alternatives'],
+        ['Waist level','24–36 inches (61–91cm)','~15%','Good-tier / entry products, standard SKUs'],
+        ['Low shelf','Below 24 inches (61cm)','~7%','Heavy/bulk items, economy packs, children\'s items'],
+      ],
+      [2000,2200,2000,3160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('2.3  The Z-Pattern and F-Pattern Scan'),
+    body('Research tracking customer eye movement on shelves has identified two dominant scan patterns. Understanding which pattern applies in which context tells you where to place priority products.'),
+    h3('Z-Pattern — Used on Display Walls and Feature Fixtures'),
+    body('The customer\'s eye enters at the top-left, sweeps horizontally across to the top-right, drops diagonally to the bottom-left, then sweeps across to the bottom-right. This Z-shape means the top-left and top-right positions receive first attention, the diagonal drop receives no attention (dead zone), and the bottom-left and bottom-right receive last attention. Implication: place your category anchor at top-left. Place your hero SKU at top-centre to top-right. Never place critical information in the diagonal zone.'),
+    h3('F-Pattern — Used on Text-Heavy Signs and Information Panels'),
+    body('When reading spec cards, comparison signs, or product labels, the eye scans the first line fully, drops down and scans a shorter second line, then drops further and reads only the left edge. Implication: the most important product claim must be on line one of any sign, left-aligned. The second most important claim on line two. Lines three and below are largely ignored. This is why product signs should have maximum 2–3 lines and lead with the strongest claim.'),
+    h2('2.4  Left-Right Bias — The Directional Economics of the Shelf'),
+    body('Customers in right-hand-dominant cultures scan shelves from left to right, mirroring reading direction. The left side of any shelf run is where attention arrives first. The right side is where attention ends — after the initial scan, the right side is revisited only if the customer has not yet found what they need. This creates two distinct placement logics:'),
+    bullet('ENTRY LOGIC: Place the category entry point (Good tier / lowest price) at the LEFT. This anchors the price perception and gives the customer their first reference point. Premium at the right means many customers never reach it.'),
+    bullet('DESTINATION LOGIC: Place the hero / most-recommended product in the CENTRE-LEFT zone — after the entry anchor establishes the category, before the customer\'s attention begins to fade to the right.'),
+    bullet('BRAND LOGIC: Within a brand block, lead with the brand\'s highest-volume SKU on the left, upgrade options to the right. The left SKU gets seen; the right SKU gets considered only by customers who inspect further.'),
+    h2('2.5  Contrast and Focal Points — How the Eye Is Pulled'),
+    body('Peripheral vision operates on contrast detection. The eye is automatically and involuntarily drawn to: bright spots against dark backgrounds; dark objects against light backgrounds; saturated colours against neutral backgrounds; moving elements (demo screens, digital signage); and size differentials (a large product among small ones). These mechanisms can be deliberately engineered in a display to direct customer attention to specific products without requiring signage.'),
+    callout('RULE', 'Every hero display must have a minimum 3:1 lighting contrast ratio between the hero product and its background. This is the threshold at which the eye\'s peripheral attention mechanism activates reliably. Below 3:1, the product does not distinguish itself from the surrounding display.', C.teal),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 3 — CHOICE ARCHITECTURE
+// ─────────────────────────────────────────────────────────────────
+function section3() {
+  return [
+    sectionBanner('03', 'Choice Architecture — Engineering the Decision Environment'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('3.1  The Paradox of Choice — Why More SKUs Kill Sales'),
+    body('Barry Schwartz\'s "Paradox of Choice" (2004), validated in retail by the landmark Iyengar & Lepper jam study (2000), established a counterintuitive but robust finding: beyond a critical threshold, adding more options reduces conversion rate, increases decision time, and increases post-purchase regret. In the jam study, a display of 24 varieties attracted more initial interest but converted at 3%; a display of 6 varieties converted at 30% — a 10× improvement in conversion with 75% fewer SKUs. The mechanism is cognitive overload: when the mental cost of evaluating options exceeds the perceived benefit of finding the perfect option, customers abandon the decision entirely.'),
+    body('For a domestic appliances and kitchenware retailer, this translates directly: a shelf with 12 mixer grinder models from 4 brands appears comprehensive but drives lower conversion than a shelf with 6 models curated by the Good-Better-Best framework. The retailer with more SKUs is providing less value to the customer.'),
+    h2('3.2  The Good-Better-Best Framework — The Universal Assortment Architecture'),
+    makeTable(
+      ['Tier','SKU Count','Price Position','Commercial Purpose','Eye-Level Rule','Margin Profile'],
+      [
+        ['Good — Entry','1–2 SKUs','Lowest price in sub-category','Volume driver. Converts price-sensitive customers. Validates the category as accessible.','Low shelf or left-position','Lower margin, high turn'],
+        ['Better — Core','2–3 SKUs','Mid-tier: typically 1.5–2.5× Good price','Commercial anchor. Highest GMROI. The store\'s recommendation. Where most customers land.','Eye level, centre, most facings (minimum 3)','Highest GMROI tier'],
+        ['Best — Premium','1–2 SKUs','Highest price','The compromise effect anchor. Makes Better look rational. Aspirational. Rarely sells in volume but earns its shelf space by improving Better-tier conversion.','Upper-right or podium display','Highest per-unit margin, lowest turn'],
+      ],
+      [1400,1200,2000,2400,1400,900]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    callout('THE COMPROMISE EFFECT', 'Simonson and Tversky (1992) documented that when three options are presented, customers disproportionately choose the middle one — not because it is objectively best, but because it feels like the risk-minimising choice. The Best tier\'s presence on the shelf makes the Better tier feel like the smart decision. This is not accidental — it is a deliberate display architecture choice.', C.blue),
+    h2('3.3  The SKU Rationalisation Matrix — What to Keep and What to Remove'),
+    body('Every SKU in a store must be classified into one of four categories using 90-day POS data. This classification drives facings, shelf position, and ultimately delisting decisions.'),
+    makeTable(
+      ['Classification','Criteria','Display Rule','Action'],
+      [
+        ['POWER SKU','Top 20% of category revenue AND top 20% of category margin','Eye level. Minimum 3 facings. Feature sign. Demo unit if applicable.','Protect. Never reduce below 3 facings.'],
+        ['STANDARD SKU','Selling regularly. Contributing 15%+ of category revenue but not top-performer.','Mid-shelf. 2 facings minimum.','Maintain. Review every 90 days.'],
+        ['SLEEPER SKU','Low sales but high margin, or new product within 60 days of launch.','Eye level trial placement for 60-day test. 1 facing.','Test. Convert to Power or Dead Wood within 60 days.'],
+        ['DEAD WOOD','Zero sales in 90 days OR less than 0.5% of category revenue.','No shelf space. Remove immediately.','Delist. Return to supplier or discount out. Every dead wood SKU is blocking a Power SKU from more facings.'],
+      ],
+      [1800,2400,2600,2560]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    formula('Dead Stock Ratio = (SKUs with Zero Sales in 90 Days ÷ Total Active SKUs) × 100', 'FORMULA'),
+    callout('BENCHMARK', 'Industry experience: 25–40% of SKUs in a typical independent Indian specialty retailer have had zero sales in 90 days. Reducing this to below 10% is typically the single highest-impact, zero-cost display improvement available. Every dead SKU removed gives space to a Power SKU to expand its facings — which increases Power SKU revenue by 12–20% per additional facing.', C.orange),
+    h2('3.4  Decision Simplification Techniques'),
+    bullet('COMPARISON SIGNS: A professionally designed comparison sign showing Product A vs Product B on 5 attributes closes more sales than a staff conversation — it is available 24/7, never misrepresents, and gives the customer autonomy. Install comparison signs between every two primary SKUs in a comparison category.'),
+    bullet('HERO DESIGNATION: One product per sub-category should carry an explicit "Our Recommendation" or "Best Seller" sign. This reduces decision paralysis by giving customers a curated starting point. The designated hero should always be the Better-tier anchor.'),
+    bullet('BUNDLE DISPLAY: Pre-assembled bundle displays (e.g., OTG + baking accessories in a grouped display with a combined price sign) reduce the decision from "what do I need?" to "is this bundle right for me?" — a dramatically simpler cognitive task.'),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 4 — MISSION-BASED SHOPPING
+// ─────────────────────────────────────────────────────────────────
+function section4() {
+  return [
+    sectionBanner('04', 'Mission-Based Shopping — Designing for How Customers Arrive'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('4.1  The Four Shopping Missions'),
+    body('Not all customers entering a store are in the same mental state or pursuing the same goal. A customer who entered knowing exactly what they want will be frustrated by a discovery-oriented store layout. A customer in exploration mode will be bored by a purely efficient grid. Professional store design accommodates multiple mission types simultaneously, routing each type toward the zone architecture designed for their state.'),
+    makeTable(
+      ['Mission Type','Customer State','Decision Mode','Zone Architecture Match','Store Design Implication'],
+      [
+        ['PLANNED / DESTINATION','Knows exactly what they want. Came with a specific product in mind.','Assisted — needs confirmation and feature info, not discovery','Zone C (GF Destination) and Zone D (FF High Value)','Clear wayfinding from entrance. Fast path to category. Staff nearby. Spec information at fixture.'],
+        ['COMPARISON / EVALUATION','Has a need, researching options. Has budget in mind.','Comparison — needs to see alternatives side by side','Zone A (GF Comparison)','Side-by-side display. Comparison signs. Multiple brands visible simultaneously. Demo access.'],
+        ['BASKET BUILDING / ERRAND','Buying routine items alongside a planned purchase. May be a second trip.','Semi-planned — knows category, open on brand/spec','Zone B (GF Basket Builder) and Zone E (FF Exploration)','Clear category organisation. Efficient navigation. Adjacency triggers add-on purchase.'],
+        ['DISCOVERY / BROWSING','No specific item in mind. Open to inspiration.','Impulse — emotional, context-triggered','Zone E (FF Exploration) and endcap placements throughout','Lifestyle display. Visual richness. Colour. The Gruen Effect engineered deliberately.'],
+      ],
+      [1800,1800,2000,2000,1760]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('4.2  Zone-Mission Mapping for a Two-Floor Store'),
+    body('In the specific store architecture analysed (Zone A–C Ground Floor, Zone D–F First Floor), each zone is designed to serve a primary mission type. The zone sequence on the ground floor follows the natural customer journey from evaluation to commitment. The first floor creates a separate exploration and high-value experience.'),
+    makeTable(
+      ['Zone','Floor','Mission Served','Design Priority','Conversion Target'],
+      [
+        ['Zone A — Comparison','GF','Evaluation / Comparison','Side-by-side display, brand blocks, comparison signs, demo','Comparison → Commitment'],
+        ['Zone B — Basket Builder','GF','Errand + Basket Building','Adjacency clusters, cross-sell signage, efficient navigation','Add-on basket size'],
+        ['Zone C — Destination','GF','Planned / Destination','System display (Stove+Chimney), clear wayfinding, staff demo','High-ticket closure'],
+        ['Zone D — High Value','FF','Planned / Premium','White goods brand blocks, personal care comparison, staff-assisted','Premium attachment'],
+        ['Zone E — Exploration','FF','Discovery / Browsing','Lifestyle display, colour variety, dwell time optimisation','Impulse basket'],
+        ['Zone F — Functional','FF','Errand / Replacement','Clear category logic, spare parts by appliance type, efficiency','Repeat purchase'],
+      ],
+      [1600,800,2000,2800,2160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('4.3  Decompression Zone and Invariant Right'),
+    body('The first 10–15 feet inside any store entrance is the decompression zone. Customers in this zone are physiologically adjusting — pace slows, attention shifts from outside to inside, the brain transitions from street mode to shopping mode. Any product, sign, or promotional display in this zone is almost universally ignored. This is one of the most consistently wasted pieces of real estate in Indian independent retail.'),
+    body('After the decompression zone, customers without a forced path turn right. This is documented across cultures and store types — the invariant right. The right perimeter immediately after decompression is the highest-value real estate in a store. This is where Zone A\'s most important comparison category should begin, pulling the customer into the store.'),
+    callout('DECISION RULE', 'The first 3 feet inside your entrance: empty or welcome-only. No products. No signs. No promotions. The next wall to the right: your most important category, your best display, your highest-conversion fixture. This is where display investment earns the highest return.', C.red),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 5 — FIXTURE & DISPLAY SCIENCE
+// ─────────────────────────────────────────────────────────────────
+function section5() {
+  return [
+    sectionBanner('05', 'Fixture & Display Science — The Infrastructure of Selling'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('5.1  Fixtures Are Not Neutral'),
+    body('Every fixture communicates a price positioning before a customer reads a single label. Wire rack = mass market. Powder-coated steel slatwall = specialist hardware. Warm timber with LED accent = premium lifestyle. Glass display with internal lighting = luxury or gift. The fixture is part of the product\'s perceived value. A ₹15,000 pressure cooker on a wire rack looks like a ₹5,000 pressure cooker. The same cooker on a polished steel podium with accent lighting looks like a ₹15,000 product. No price change occurred. Only the display environment changed.'),
+    h2('5.2  Fixture Type to Product Type Mapping'),
+    makeTable(
+      ['Fixture Type','Best For','Aisle/Space Rule','Specific to Your Store','Revenue Potential'],
+      [
+        ['Gondola — double-sided freestanding','Mid-floor SKU display, comparison categories','Min 42" aisle both sides. Max 60" height for self-serve.','Zone A comparison bays. Zone B basket-building bays.','Highest revenue per sq ft for comparison categories'],
+        ['Wall shelving — single-sided','Full assortment display, depth of range, anchor categories','Shelf depth must match product depth — do not over-deep.','All perimeter walls in Zone B, E, F.','Efficient space use. Depth of range visible.'],
+        ['Glass display case — enclosed','High-value small items, gifting, premium accessories','Always internally lit. Top surface is an active display.','Zone E gift and specialty bay. Zone D personal care accessories.','Highest perceived value per sq ft'],
+        ['Platform / Podium','Hero product standalone. One product. Maximum attention.','18–24" height. Clear space around all sides. Accent lit from above.','Gas Stove demo unit. Washing Machine. Refrigerator.','Converts the single highest-value purchase'],
+        ['Endcap','Highest-traffic promotional display. Category entry point.','Never empty. Never overflow stock. Rotate every 4–8 weeks.','End of every Zone A and Zone B gondola run.','100–400% higher SpLF than mid-aisle'],
+        ['Demo table / round display','Interactive product demonstration. Touch = purchase.','Customer must be able to reach all sides. Clear space above.','Your existing round glass demo table. Keep for this.','Highest conversion for demonstration-sensitive products'],
+        ['Hook / Slatwall','Small accessories, add-ons, spare parts','Price on every hook. Right hook length. No empty hooks.','Zone B tools wall. Zone F spare parts.','High density, low cost display'],
+      ],
+      [2000,2400,2000,1760,1200]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('5.3  The Endcap Economics'),
+    body('The endcap is the face of the gondola run — every customer passing any aisle passes both endcaps at each end. Research consistently shows endcap products sell at 100–400% of the rate of the same product placed mid-aisle. The reason is pure traffic: 100% of customers traversing the store pass the endcap. Only the customers who enter a specific aisle see mid-aisle products.'),
+    body('Professional endcap management rules:'),
+    bullet('ONE CLEAR MESSAGE per endcap. Not a mix of products at multiple price points and from multiple categories. One story.'),
+    bullet('COMMERCIAL PRIORITY ASSIGNMENT: Endcaps are allocated based on GMROI ranking, not staff convenience or supplier payment alone (unless the payment exceeds the opportunity cost).'),
+    bullet('ROTATION EVERY 4–8 WEEKS: Regular customers stop registering static displays within 2–3 weeks. Rotation maintains attention.'),
+    bullet('NEVER USE FOR OVERFLOW: An endcap filled with overstock signals a disorganised store. It destroys the premium feel and wastes the highest-traffic location.'),
+    h2('5.4  The Chimney-Above-Stove System Display — Your Highest-Value Fixture Decision'),
+    body('Zone C\'s gas stove + chimney + hob system display is the most commercially important display decision in your store. When a chimney is physically mounted above a gas stove display — mirroring how it appears in a customer\'s kitchen — the chimney attach rate to a stove purchase increases by an estimated 30–40% versus a chimney displayed separately. The customer does not need to imagine the setup; they can see their kitchen. This is the endowment effect in its most commercially powerful form.'),
+    callout('ACTION', 'Zone C: Gas stove on a floor platform or in the existing drawer display. Chimney physically mounted and lit above it. Hob displayed adjacent with a "Compare: Gas vs Hob" sign. Pressure cooker on a shelf within arm\'s reach of the stove. This is a system purchase display — everything the customer needs in one decision event.', C.teal),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 6 — SPACE PRODUCTIVITY METRICS
+// ─────────────────────────────────────────────────────────────────
+function section6() {
+  return [
+    sectionBanner('06', 'Space Productivity — Every Formula a Professional Uses'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('6.1  The Master Metrics System'),
+    body('Professional retail display is not judged aesthetically — it is judged commercially. Every display decision creates a measurable before-and-after change in at least one metric. The system below covers space productivity, inventory efficiency, and customer behaviour metrics. A professional tracks all three categories simultaneously, because a high space productivity metric combined with a low inventory turn signals a different problem than high space productivity with low conversion.'),
+    h3('Space Productivity Metrics'),
+    formula('Sales per Square Foot (SpSF) = Total Net Sales ÷ Total Selling Floor Area (sq ft)', 'SpSF'),
+    body('The master metric of store productivity. Calculate by zone, not just store total. A zone generating ₹8,000 SpSF/year while your store average is ₹20,000 is massively under-performing. The question is whether it is the wrong category, wrong fixture, or wrong placement.'),
+    formula('Sales per Linear Foot (SpLF) = Category Revenue ÷ Linear Feet of Shelving', 'SpLF'),
+    body('The most important metric for planogram decisions. If Zone B\'s kadhai bay generates ₹3,500/linear foot/month and the adjacent frying pan bay generates ₹1,200/linear foot/month, the kadhai bay earns more space. SpLF is the data that overrides gut feel, supplier pressure, and habit.'),
+    formula('GMROI = Annual Gross Margin ÷ Average Inventory at Cost', 'GMROI'),
+    body('GMROI answers: for every rupee locked in inventory, how many rupees of gross margin do you get back? GMROI below 1.0 means inventory is destroying value. A GMROI above 2.5 is excellent for kitchenware and domestic appliances. GMROI should be calculated per category and per brand — the highest GMROI brands earn the best positions on the shelf.'),
+    formula('Average Inventory at Cost = (Opening Stock Value + Closing Stock Value) ÷ 2', ''),
+    h3('Inventory Efficiency Metrics'),
+    formula('Inventory Turn = Annual COGS ÷ Average Inventory at Cost', 'Stock Turn'),
+    body('Industry benchmarks for your category: Kitchen appliances: 4–8 turns. Cookware and kitchenware: 3–6 turns. Serveware and tableware: 2–4 turns. Large appliances: 2–4 turns. A turn of 1 means you sell through your entire inventory value once per year — every rupee is working at minimum efficiency.'),
+    formula('Sell-Through Rate = (Units Sold ÷ Units Received in Period) × 100', 'STR'),
+    body('Target: 75%+ sell-through per period. Below 50% signals either wrong assortment or wrong placement. Both are fixable, but you must first diagnose which: if the product is present at eye level with good signage and still not selling, it is an assortment problem. If it is buried on a bottom shelf with no signage, it is a display problem.'),
+    formula('Dead Stock Ratio = (SKUs with Zero Sales in 90 Days ÷ Total Active SKUs) × 100', 'DSR'),
+    h3('Customer Behaviour Metrics'),
+    formula('Conversion Rate = (Number of Transactions ÷ Total Footfall) × 100', 'CR'),
+    body('CRITICAL: You cannot calculate conversion rate without a footfall counter. Without knowing how many people entered, you do not know what percentage bought. Without knowing conversion rate, you cannot measure the impact of any display change. A basic IR beam counter (₹3,000–5,000 hardware) is the non-negotiable first investment before any other measurement programme.'),
+    formula('Average Transaction Value (ATV) = Total Revenue ÷ Total Transactions', 'ATV'),
+    formula('Units Per Transaction (UPT) = Total Units Sold ÷ Total Transactions', 'UPT'),
+    body('UPT is the single most direct measure of adjacency effectiveness. When you move ladles next to kadhai and UPT rises, the adjacency is working. When UPT falls after a display change, an adjacency pair has been separated that should not have been. Track UPT by category and compare before/after every planogram change.'),
+    formula('Profit Per Facing (PPF) = (Gross Margin per Unit × Units Sold from Position) ÷ Number of Facings', 'PPF'),
+    body('PPF is the advanced metric used by enterprise retailers to allocate facings at SKU level. If SKU A has PPF of ₹450 and SKU B has PPF of ₹180, and they are currently allocated equal facings, moving one facing from B to A increases gross margin per linear foot even if B has higher revenue. This metric uncovers hidden margin leaks in seemingly rational planograms.'),
+    h2('6.2  The 90-Day Metrics Review Cycle'),
+    makeTable(
+      ['Step','Activity','Tool Required','Output'],
+      [
+        ['1. Extract','Pull SKU sales, margin, and stock data for the 90-day period','POS system with SKU-level reporting','Raw data file (CSV/Excel)'],
+        ['2. Classify','Apply SKU matrix: Power / Standard / Sleeper / Dead Wood','Excel model or planogram software','SKU classification list'],
+        ['3. Calculate','Compute GMROI, SpLF, Sell-Through, DSR per category','Excel formulas','Category performance scorecard'],
+        ['4. Compare','Compare current allocation vs performance-weighted allocation','As-Is planogram photographs + data','Gap list: over-allocated and under-allocated categories'],
+        ['5. Redesign','Update planogram based on data gaps. Adjust facings, positions, adjacencies','Planogram document','Updated planogram for each affected fixture'],
+        ['6. Execute','Implement new planogram. Photograph every fixture','Camera + shelf labels','After-state documentation'],
+        ['7. Measure','Pull same metrics at 30 and 60 days post-implementation','POS + footfall counter','Before/after comparison report'],
+      ],
+      [800,2800,2200,3560]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 7 — BASKET ANALYSIS & ADJACENCY
+// ─────────────────────────────────────────────────────────────────
+function section7() {
+  return [
+    sectionBanner('07', 'Basket Analysis & Adjacency — Engineering the Add-On Purchase'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('7.1  Why Adjacency Is the UPT Engine'),
+    body('The single highest-leverage, lowest-cost action for increasing basket size is product adjacency. Research on grocery retail showed that chips placed adjacent to dip increased sales of both by 15–20% compared to when separated. The mechanism is occasion priming: when you see chips, you think of the chip-eating occasion, and the dip is part of that occasion. When the dip is not visible, the occasion remains in your mind but the add-on purchase does not happen. For appliances and kitchenware, the same mechanism is more powerful because the add-on products are often essential to use the primary product — an OTG without a baking tray cannot be used. Displaying the tray adjacent to the OTG is not just a commercial choice — it is genuinely useful to the customer.'),
+    h2('7.2  How to Identify Adjacency Pairs — Basket Analysis Method'),
+    body('Market basket analysis identifies products that appear in the same transaction. This is the data-driven method for identifying which products to place adjacent. The analysis requires SKU-level transaction data from your POS system — every receipt, every SKU on every receipt, exported to Excel.'),
+    makeTable(
+      ['Metric','Formula','What It Tells You','Adjacency Threshold'],
+      [
+        ['Support','Transactions containing both A and B ÷ Total transactions','How frequently the pair appears together in baskets','Above 5% = strong pair candidate'],
+        ['Confidence','Transactions containing both A and B ÷ Transactions containing A','If a customer bought A, how often did they also buy B?','Above 30% = place B within 3 feet of A'],
+        ['Lift','Confidence ÷ Market share of B','Is the co-purchase more frequent than chance?','Above 2.0 = strong adjacency signal; above 3.0 = display immediately adjacent'],
+      ],
+      [1600,2800,2600,2360]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    callout('NOTE FOR STORES WITHOUT POS BASKET DATA', 'If your POS records totals but not itemised baskets, use the qualitative method: (1) observe 20 transactions at the billing counter and note multi-item combinations; (2) ask 10 customers who bought a primary product "did you also need anything to go with this?"; (3) use your existing zone-level adjacency map as a starting hypothesis and validate with UPT measurement.', C.gold),
+    h2('7.3  Validated Adjacency Pairs — Your Store Context'),
+    makeTable(
+      ['Primary Product','Adjacent Product','Commercial Logic','Cross-Zone?','Expected UPT Lift'],
+      [
+        ['Gas Stove','Chimney + Hob + Pressure Cooker','System purchase. Customer buying stove almost always needs chimney and cooker.','No — Zone C cluster','30–40% chimney attach rate'],
+        ['Kadhai (Zone B)','Ladle + Spatula + Tawa','Cannot cook in kadhai without tools. Same fixture increases basket immediately.','No','UPT +0.6–0.8 units per kadhai sale'],
+        ['OTG (Zone D)','Baking Tray + Cake Mould + Hand Mixer','Product is unusable without accessories. Customer knows they need these.','YES — Zone D → Zone B via signage','20–30% accessory attach rate'],
+        ['Mixer Grinder (Zone A)','Juicer + Food Processor','Comparison trio. Customer evaluating mixer often upgrades to food processor.','No','Upgrade rate: 15–25%'],
+        ['Induction Cooktop (Zone A)','Induction-compatible Cookware','Cannot use induction cooktop with regular cookware. Genuine need, not just cross-sell.','YES — Zone A → Zone B via signage','High: customer cannot use product without this'],
+        ['Dinner Set (Zone E)','Thali + Katori + Tray + Serving accessories','Occasion purchase. Customer buying dinner set is outfitting an occasion, not just replacing a plate.','No','UPT +1.2–2.0 per dinner set sale'],
+        ['Belan (Zone B)','Chakla + Tawa','Cultural purchase pair. Never separated in a traditional Indian kitchen.','No','Near-100% pair purchase rate'],
+        ['Water Purifier (Zone D)','Cartridge/Spare Parts (Zone F)','Replacement cycle is regular. Showing cartridge at point of purchase seeds the next visit.','YES — Zone D → Zone F via signage','AMC conversion: 15–25%'],
+      ],
+      [1800,2200,2600,1200,1560]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('7.4  Cross-Zone Adjacency — When Physical Separation Cannot Be Avoided'),
+    body('Not all adjacency pairs can be physically placed together. Zone D\'s OTG cannot be relocated next to Zone B\'s baking accessories — the two zones serve different missions and moving the OTG would break Zone D\'s premium cooking cluster logic. In these cases, cross-zone adjacency is achieved through signage, not physical placement.'),
+    bullet('At the OTG display (Zone D): a sign reading "COMPLETE YOUR OTG — Baking Trays, Cake Moulds & Accessories in Zone B" with a directional arrow.'),
+    bullet('At the baking accessories bay (Zone B): a sign reading "OTG Ovens — Zone D First Floor. These accessories are compatible."'),
+    bullet('Both signs should include a photograph of the bundle and a clear call to action. The sign replaces the physical adjacency — it triggers the same occasion priming mechanism through language rather than visual proximity.'),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 8 — PLANOGRAM ENGINE LOGIC
+// ─────────────────────────────────────────────────────────────────
+function section8() {
+  return [
+    sectionBanner('08', 'Planogram Engine Logic — From Data to Shelf Position'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('8.1  What a Planogram Engine Does'),
+    body('A planogram engine is a rule-based system that takes product data (dimensions, sales, margin, category, brand, tier) and fixture data (shelf heights, widths, depth, capacity) as inputs and outputs a visual shelf layout that maximises a defined commercial objective (typically GMROI or SpLF). At its core, a planogram engine is an optimisation algorithm constrained by shelf physics and merchandising rules. This section defines the rules and the data model required to build or configure one.'),
+    h2('8.2  The Data Model — Required Inputs'),
+    makeTable(
+      ['Data Entity','Required Fields','Source','Update Frequency'],
+      [
+        ['Product Master','SKU code, product name, category, sub-category, brand, GBB tier, dimensions (H×W×D in cm), unit weight, facing width, price tier, MRP, cost price','ERP / manual entry','On new product addition'],
+        ['Sales Data','SKU code, units sold, revenue, COGS, by period (30/90/180 days)','POS export','Daily (batch)'],
+        ['Inventory Data','SKU code, current stock quantity, days of inventory, last received date','Inventory system / POS','Daily'],
+        ['Fixture Master','Fixture ID, zone, aisle, bay, shelf count, shelf dimensions (W×D), max load per shelf, fixture type','Manual setup','On fixture change'],
+        ['Planogram Rules','Eye-level zone definition, GBB placement rules, adjacency pairs, minimum facing rules, CDT sequence','Rules engine (this document)','Per review cycle'],
+        ['Performance Scores','SpLF, GMROI, Sell-Through, Dead Stock flag — computed from above','Analytics engine','Per review cycle (90-day)'],
+      ],
+      [2000,2800,1800,2760]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('8.3  The Placement Algorithm — Decision Rules in Sequence'),
+    body('The planogram engine applies placement rules in strict priority order. A lower-priority rule can never override a higher-priority rule:'),
+    makeTable(
+      ['Priority','Rule','Logic'],
+      [
+        ['P1 — SAFETY','Heavy items (>5kg) go on lowest shelf','Physics: fall risk. Legal: safety compliance.'],
+        ['P2 — EYE LEVEL','Power SKUs and Better-tier products assigned to shelves 2–3 (36–60" range)','70% of visual attention is in this zone. Power SKUs must be here.'],
+        ['P3 — CDT SEQUENCE','Left-to-right order on each shelf follows the CDT primary filter (typically price tier)','Mirror the customer\'s decision sequence to reduce cognitive friction.'],
+        ['P4 — VERTICAL BLOCKING','Same brand in the same vertical column from top to bottom shelf','Z-pattern scanning hits brand block at every shelf level.'],
+        ['P5 — FACING ALLOCATION','Facing count proportional to SpLF rank within category: Power ≥3 facings, Standard 2, Sleeper 1','Facings drive sales. More facings = higher perceived popularity = higher conversion.'],
+        ['P6 — ADJACENCY','Products with lift >2.0 must be within 36" of each other on the same or adjacent fixture','Basket analysis validation. This is the UPT driver.'],
+        ['P7 — GBB VERTICAL','Good tier: lowest shelf. Better: eye level. Best: upper shelf or podium.','Compromise effect. Best makes Better look rational.'],
+        ['P8 — SIGNAGE','Every Power SKU must have a feature sign. Every comparison pair must have a comparison sign. Every price must be visible from 3 feet.','Signage replaces staff at the moment of decision.'],
+        ['P9 — NEGATIVE SPACE','Feature displays and endcap presentations: max 7 products with deliberate space between','Empty space = premium signal. Density = discount signal.'],
+      ],
+      [1400,2800,5160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('8.4  The Nine Non-Negotiable Shelf Rules'),
+    makeTable(
+      ['Rule','Specification','WHY It Exists'],
+      [
+        ['Eye Level = Buy Level','36"–60" from floor receives 70% visual fixations. Power SKUs and Better-tier products only.','Human eye rests at nose level. First shelf sweep is at this height. Products not in this zone are missed by most customers.'],
+        ['Facings Drive Sales','2 facings: +12–18% sales vs 1. 3 facings: +20–30%. Top 10 SKUs need minimum 3 facings.','More facings signal popularity. Wider block catches peripheral vision. Reduces stockout risk.'],
+        ['Vertical Beats Horizontal','Same brand column from top to bottom. Not rows across a single shelf level.','Z-pattern scan hits vertical block at every level. Horizontal block at one height is only seen in one scan pass.'],
+        ['Flow Logic','Left-to-right matches CDT primary filter (usually price: low left, high right)','Mirrors reading direction and decision sequence. Reduces cognitive effort.'],
+        ['Adjacency Placement','High-lift pairs within 36". Adjacent fixture if same shelf is full.','Occasion priming mechanism. Customer sees primary product and associated need simultaneously.'],
+        ['Compromise Effect','Always display 3 tiers (Good/Better/Best). Best makes Better sell.','Simonson & Tversky (1992): customers choose the middle option more often when three are present.'],
+        ['Colour Flow','Light left to dark right, or warm to cool. Never random.','Reduces visual noise. Eye has a resting path through the display. Products are individually readable.'],
+        ['Maintenance Standard','Every shelf labelled with SKU code. Morning walk checklist. Monthly compliance photo.','A planogram is only as valuable as the discipline to maintain it. Without a standard, it degrades in weeks.'],
+        ['Seasonal Reset Cadence','Full reset 6–12 months. Category reset 90 days. Endcap 4–8 weeks. Feature zone 4 weeks.','Customers stop seeing static displays within 2–3 visits. Regular customers provide disproportionate revenue — their experience must stay fresh.'],
+      ],
+      [2200,2800,4360]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 9 — ATMOSPHERICS & VISUAL MERCHANDISING
+// ─────────────────────────────────────────────────────────────────
+function section9() {
+  return [
+    sectionBanner('09', 'Atmospherics & VM — The Invisible Revenue Drivers'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('9.1  The Five-Sense Revenue Model'),
+    body('Philip Kotler\'s 1973 foundational paper demonstrated that the designed environment of a store can exert more influence on purchasing behaviour than the product itself. Every sensory channel a customer experiences simultaneously either supports or undermines the commercial outcome. Professional retailers design all five channels. Independent retailers typically design one (visual) and neglect the rest.'),
+    makeTable(
+      ['Channel','Commercial Effect','Specification for Your Store','Investment Required'],
+      [
+        ['SIGHT — Lighting','Better lighting increases perceived product quality, extends dwell time, increases conversion. Apple\'s 3:1 accent ratio is the professional standard.','Ambient: 3000K warm white at 400–500 lux. Accent spotlights on hero displays and Zone D white goods at 4000K. Track lighting adjustable.','₹15,000–50,000 for track lighting upgrade. Highest ROI per rupee spent.'],
+        ['SIGHT — Colour','Products pop against neutral backgrounds. Category zones read as distinct.','Perimeter walls: warm white or off-white. Interior gondolas: neutral grey. Accent walls where category identity benefits.','Paint cost only. Zero if walls not repainted — use neutral fixture backing.'],
+        ['SOUND — Music','Slow tempo: +38% sales vs fast tempo (Milliman, 1982). Background volume: customers browse longer. Genre signals positioning.','Familiar, pleasant, mid-tempo instrumental. Not Bollywood mass market, not aggressive genre. Background, never foreground.','₹0 (streaming app) to ₹5,000/month (licensed commercial music).'],
+        ['SCENT — Ambient','Pleasant ambient scent increases product evaluation, store evaluation, and purchase intention (Spangenberg et al., 1996).','Fresh linen or mild citrus note. Avoid food-specific scents in an appliance store. Mild, pleasant, consistent.','₹3,000–15,000 diffuser. Cartridges ₹500–2,000/month.'],
+        ['TOUCH — Interaction','Touch = purchase (Underhill). Products customers pick up and handle sell dramatically better.','Every product in Zone A and Zone D should have a demo unit at accessible height. Zone B tools displayed so they can be handled.','No cost — requires fixture height adjustment and staff policy change only.'],
+      ],
+      [1400,2400,3000,2560]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('9.2  Visual Merchandising Principles'),
+    h3('The Rule of Three'),
+    body('Human visual perception finds odd-numbered groupings more interesting than even-numbered ones. Three objects create visual hierarchy — the eye moves between them seeking a dominant element, which creates dwell time. Always group products in threes on hero displays, endcap features, and lifestyle arrangements. Three different heights, three complementary colours, three sizes of the same product family.'),
+    h3('The Triangle Principle'),
+    body('The most visually stable and commercially effective display arrangement places the tallest item at the back, medium items in the middle, and shortest at the front. This pyramid silhouette allows every item to be seen simultaneously and creates a natural eye path from tallest to shortest and back. Dwell time on triangle displays is measurably longer than on flat arrangements.'),
+    h3('Negative Space — The Premium Signal'),
+    body('Empty space on a display increases perceived value of the products displayed. Apple puts one product per table section. Le Creuset displays cookware with generous space between each piece. The same product on a crowded shelf reads as discount clearance; on a spacious display it reads as a considered purchase. Feature displays: maximum 5–7 products. Never more. Depth-of-range shelves can be fuller but never crammed.'),
+    h3('Lifestyle Display — The Highest-Converting Format for Your Category'),
+    body('A lifestyle display presents products as part of a usage scene — not on a shelf but as part of someone\'s life. A dinner set laid for a meal. A cookware range on a mock kitchen surface with ingredients and utensils. An OTG with a finished baked item in front of it. The mechanism is the endowment effect: customers who can mentally place themselves using the product feel pre-ownership, which reduces purchase hesitation more effectively than any promotion.'),
+    callout('BUILD INSTRUCTIONS', 'One lifestyle display per major zone. Choose one hero product. Build a context surface (cutting board, table runner, or tray). Add 3–5 complementary products from the category. Add one humanising prop (folded tea towel, fresh fruit, cookbook). Light with a spot from above. Total build time: 45–60 minutes. Expected conversion lift on the hero: 20–35%.', C.teal),
+    h2('9.3  Signage — The Silent Salesperson'),
+    makeTable(
+      ['Sign Type','Location','Must Communicate','Design Rule'],
+      [
+        ['Category Marker / Wayfinding','Ceiling-hung or top of wall fixture. Visible from entrance.','Category name ONLY. Nothing else.','Min 4-inch text. High contrast. Readable from 30 feet. Never product info.'],
+        ['Shelf Edge Label','Rail at front edge of every shelf position.','Product name, key spec, MRP, selling price, SKU code.','Printed template, never handwritten. Updated immediately on price change.'],
+        ['Feature / Hero Sign','Adjacent to featured product at eye level. A5 size.','Why THIS one. Key benefit, award, warranty, bestseller status.','Max 20 words. Benefit-led language. Premium material.'],
+        ['Comparison Sign','Between two products being compared.','Side-by-side spec table. Max 5 attributes.','The most effective staff-replacement tool. Invest in design quality.'],
+        ['Bundle / Adjacency Sign','On primary product or gondola end.','What to buy with this. Bundle saving or benefit.','Include photograph of the bundle. Show saving clearly.'],
+        ['Price Communication','Every product, every display. No exceptions.','Price visible without picking up the product. From 3 feet.','Legal requirement and customer trust signal. No price = no purchase.'],
+      ],
+      [2000,2000,2600,2760]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 10 — EXPERIMENTATION & FEEDBACK LOOP
+// ─────────────────────────────────────────────────────────────────
+function section10() {
+  return [
+    sectionBanner('10', 'Experimentation & Feedback Loop — The Continuous Improvement Engine'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('10.1  Why Testing Is Non-Negotiable'),
+    body('A display change made without a before-and-after measurement is a guess — even an intelligent, science-grounded guess. A retailer who guesses, even intelligently, is at a permanent competitive disadvantage against a retailer who measures. The measurement infrastructure required is not expensive. The barrier is discipline, not cost. The feedback loop converts a display system from static to continuously improving — which is the single most important structural advantage a retailer can build.'),
+    h2('10.2  The A/B Testing Framework for Retail'),
+    body('True A/B testing in a single-store context requires either: (a) time-based comparison (same fixture before vs after a change, same seasonal period), or (b) zone-based comparison (same product displayed differently in two comparable zones, comparing sell-through). Multi-store retailers can run genuine split tests: version A in Store 1, version B in Store 2, compare per-location results.'),
+    makeTable(
+      ['Test Type','Setup','Measurement Period','Decision Rule'],
+      [
+        ['Before/After Test','Baseline photograph and metrics. Implement change. Measure same metrics.','Minimum 30 days. Ideally 60 days to remove weekly noise.','Change is validated if target metric improves by >5%. Below 5% is within measurement error.'],
+        ['Endcap Rotation Test','Two endcaps: Product A on Endcap 1 for 4 weeks, then swap. Compare SpLF for each period.','8 weeks total (4 per condition)','Product with higher SpLF in its 4-week period earns the better endcap permanently.'],
+        ['Facing Count Test','Increase hero SKU from 2 to 3 facings. Remove 1 facing from lowest-performing neighbour.','30 days','If hero SKU units sold increase by >12%, additional facing is justified. If not, return to original.'],
+        ['Adjacency Test','Place Products A and B adjacent. After 30 days, measure UPT. Separate them for 30 days. Measure UPT again.','60 days total','Adjacency is validated if UPT is measurably higher when adjacent. This becomes a permanent rule.'],
+        ['Signage Test','Install a feature sign on hero SKU. Measure units sold per week before and after.','30 days','If units sold increase by >15% with sign, sign stays. This is typically the highest-ROI test available.'],
+      ],
+      [1800,2800,1800,3160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('10.3  The Complete Execution → Optimisation Loop'),
+    makeTable(
+      ['Phase','Action','Tool / Output','Frequency'],
+      [
+        ['1. RESEARCH','Observe customer behaviour. Pull basket data. Calculate CDT.','Field observation notes + POS data','Once per category, then per major reset'],
+        ['2. STRATEGY','Define category roles, GBB assortment, adjacency pairs','Category Strategy Playbook (1 page per category)','90-day review'],
+        ['3. PLANOGRAM','Design fixture layout using placement algorithm (Section 8.3)','Planogram document (photograph-annotated)','90-day review'],
+        ['4. EXECUTION','Implement planogram. Label shelves. Photograph every fixture.','After-state photographs + shelf labels','Immediately after each reset'],
+        ['5. MONITORING','Morning walk checklist. Compliance check. Stock face-up.','Morning walk form (15 minutes daily)','Daily'],
+        ['6. MEASUREMENT','Pull metrics at 30 and 60 days. Compare to baseline.','KPI dashboard + before/after comparison','30 and 60 days post-change'],
+        ['7. OPTIMISATION','Act on measurement. Adjust facings, positions, signage.','Planogram update document','60–90 days post-change'],
+        ['LOOP RESTART','Use optimised planogram as new baseline for next cycle','Updated baseline photograph','Every 90 days'],
+      ],
+      [1400,2800,2800,2360]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('10.4  The Seven Common Display Failures — Root Cause and Fix'),
+    makeTable(
+      ['Failure','Root Cause','Diagnostic Test','Professional Fix'],
+      [
+        ['Eye level occupied by wrong products','Space given by supplier pressure or habit, not data','Pull SpLF: are the eye-level products in the top 3 by SpLF for that category?','Implement P2 rule: Power SKUs only at eye level. Review every 90 days.'],
+        ['Cluttered display reads as disorganised','Too many SKUs. Dead Wood not removed. No negative space.','Calculate Dead Stock Ratio. >15% signals over-assortment.','Assortment audit. Remove Dead Wood. Apply GBB. Add space.'],
+        ['Customers cannot navigate','No category wayfinding. Layout not mirroring CDT.','Time a first-time shopper finding any category. >60 seconds = failure.','Ceiling category markers. CDT shelf organisation. Sightlines clear.'],
+        ['Low conversion despite footfall','Display generates interest but not decision closure.','Is there a comparison sign? Is there a price on every product? Is the hero product reachable?','Comparison signs. Hero feature sign. Pricing on everything. Demonstration access.'],
+        ['Low UPT — single-item baskets','No adjacency logic. High-lift pairs separated.','Calculate lift for top 10 product combinations from POS data.','Place high-lift pairs adjacent. Add bundle signs. Cross-zone signage for non-adjacent pairs.'],
+        ['Display degrades in weeks','No planogram standard. No labels. No morning walk.','Walk the store at end of week 2 after a reset. Document drift.','Planogram document. Shelf labels. Morning walk checklist. Monthly compliance photo.'],
+        ['Cannot measure improvement','No footfall counter. No before/after documentation.','Can you state your conversion rate? Your UPT by category?','Footfall counter (₹3,000). POS export discipline. Baseline photo before every change.'],
+      ],
+      [2000,2200,2000,3160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 11 — STORE-SPECIFIC EXECUTION PLAN
+// ─────────────────────────────────────────────────────────────────
+function section11() {
+  return [
+    sectionBanner('11', 'Store-Specific Execution Plan — Your Store, Your Zones, Your Actions'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('11.1  Current State Assessment'),
+    body('Based on the Store A description and the Zone classification in store_zone_v3_final.xlsx, the following critical issues were identified in the current display arrangement, each mapped to a specific scientific principle and a specific corrective action.'),
+    makeTable(
+      ['Current Problem','Zone Affected','Science Principle Violated','Priority Fix'],
+      [
+        ['Large appliances at entrance — first thing customers see','Zone A (current)','Decompression zone violation. Invariant right not utilised.','Move large appliances to Zone D (FF). Zone A becomes comparison zone per xlsx.'],
+        ['Mixer grinders stacked on floor on top of each other','Zone B (current)','Eye level rule violated. Touch = purchase impossible. No comparison possible.','Gondola shelving, eye-level placement, side-by-side brand comparison.'],
+        ['Glass display cases used for cookware','Zone B (current)','Touch = purchase requires open access. Enclosed display suppresses interaction.','Open cookware to gondola with free access. Glass cases reserved for premium/gift items.'],
+        ['FF completely unutilised — godown state','Zone D, E, F','First floor generates zero revenue. High-value appliances not in a premium display environment.','Full FF conversion: Zone D white goods + premium cooking, Zone E exploration, Zone F utility.'],
+        ['No adjacency logic — mixer grinder not near juicer','Multiple zones','Adjacency science ignored. UPT suppressed.','Implement xlsx adjacency pairs as primary display organisation principle.'],
+        ['Small items facing billing counter, not customers','Zone B (current)','Sightline not toward customer traffic flow. Products lose visibility.','Reorient display stands toward customer entry path.'],
+        ['Cookware on floor — some stacked','Zone B/C (current)','Heavy item rule exception only. All browseable cookware must be on fixture at reach height.','Fixture installation for all browseable cookware. Floor only for demonstration units.'],
+      ],
+      [2400,1600,2400,3160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('11.2  Zone-by-Zone Execution Sequence'),
+    h3('PHASE 1 — Ground Floor Resequence (Weeks 1–3)'),
+    bullet('Relocate all large white goods from entrance to FF Zone D. This clears Zone A for comparison display.'),
+    bullet('Install gondola fixtures in Zone A for: Mixer Grinder / Juicer / Food Processor comparison bay. Induction Cooktop + Rice Cooker bay. Iron + Garment Steamer bay. Electric Kettle + Coffee Maker + Toaster morning cluster.'),
+    bullet('Zone B: Reconfigure to basket-builder logic. Kadhai + Frying Pan + Cooking Tools on same fixture. Baking cluster consolidated. Small appliance add-ons grouped.'),
+    bullet('Zone C: Install chimney above gas stove. Pressure cooker adjacent. System display with spec cards.'),
+    h3('PHASE 2 — First Floor Activation (Weeks 4–8)'),
+    bullet('Zone D: White goods brand blocks. Premium cooking cluster (OTG + Microwave + Air Fryer with baking cross-ref signage to Zone B). Personal care comparison bay. Climate control.'),
+    bullet('Zone E: Exploration zone layout. Serveware lifestyle display. Bottle and flask comparison bay. Storage container variety display with colour stacking.'),
+    bullet('Zone F: Cleaning station cluster. Spare parts organised by appliance type with cross-ref signs to parent products in Zones A/C/D.'),
+    h3('PHASE 3 — Atmospherics and Signage (Weeks 8–10)'),
+    bullet('Install ceiling category markers for every zone on both floors. Readable from 30 feet.'),
+    bullet('Install shelf edge labels on every shelf position (SKU code + price + name).'),
+    bullet('Install feature signs on every Power SKU (top 5 per category by SpLF).'),
+    bullet('Install comparison signs between primary SKUs in Zone A comparison categories.'),
+    bullet('Install cross-zone bundle signs at OTG display, Water Purifier display, and Iron display.'),
+    bullet('Add accent track lighting to Zone D white goods display and Zone C system display.'),
+    h3('PHASE 4 — Measurement Infrastructure (Week 10 onwards)'),
+    bullet('Install IR footfall counter at ground floor entrance. Begin recording daily.'),
+    bullet('Calculate baseline conversion rate from week 1 of footfall data vs POS transaction count.'),
+    bullet('Pull 90-day POS data for SKU classification (Power/Standard/Sleeper/Dead Wood).'),
+    bullet('Photograph every fixture in its after-state. These are your planogram baselines.'),
+    bullet('Set 30-day and 60-day measurement reminders. Pull same metrics. Build before/after comparison.'),
+    h2('11.3  The Four Institutional Documents to Create'),
+    makeTable(
+      ['Document','Contents','Owner','Update Cadence'],
+      [
+        ['Master Planogram Document','Photograph of every fixture annotated with SKU codes and facing counts.','Store Manager','Every 90-day reset'],
+        ['Category Strategy Playbook','One page per category: role, GBB assortment, key metrics, Power SKUs, adjacency logic, supplier score card.','Owner / Category Manager','90 days'],
+        ['Store Operations Manual','Daily opening checklist, morning walk procedure, planogram maintenance protocol, seasonal calendar.','Store Manager','Annually + on process change'],
+        ['KPI Dashboard','Daily: revenue + transactions. Weekly: UPT + ATV. Monthly: conversion rate + SpSF + SpLF + GMROI + sell-through.','Owner','Weekly review, monthly deep review'],
+      ],
+      [2000,3600,1800,2160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SECTION 12 — SUPPLIER MANAGEMENT & PRICE ARCHITECTURE
+// ─────────────────────────────────────────────────────────────────
+function section12() {
+  return [
+    sectionBanner('12', 'Supplier Management & Price Architecture — Using Data as Leverage'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    h2('12.1  The Supplier Score Card'),
+    body('Supplier representatives regularly request eye-level placement, more facings, and reduced competitor space. These requests are made in the interest of the supplier\'s brand, not the retailer\'s commercial health. The retailer who accepts these requests without data analysis is transferring commercial value to the supplier. The retailer who presents a supplier score card converts the conversation: instead of responding to the supplier\'s requests, they require the supplier to earn display priority through performance.'),
+    makeTable(
+      ['Metric','How to Calculate','Performance Benchmark','Display Decision Rule'],
+      [
+        ['GMROI','Annual Gross Margin ÷ Average Inventory at Cost per brand','Above 2.0 = strong. Below 1.2 = review required.','Highest GMROI brand in a sub-category earns eye level and most facings.'],
+        ['SpLF','Brand Revenue per period ÷ Linear feet allocated to brand','Above store category average = earns space.','Below-average SpLF brand loses facings to above-average brand at next reset.'],
+        ['Sell-Through Rate','Units sold ÷ Units received per period × 100','Above 70% = strong. Below 50% = problem.','Below 50% STR brand is creating dead stock. Supplier must take back unsold inventory or improve terms.'],
+        ['Dead Stock Ratio','SKUs with zero sales in 90 days ÷ total brand SKUs × 100','Below 10% = healthy. Above 25% = bloated assortment.','Supplier with >25% DSR must delist slow SKUs as a condition of continued display allocation.'],
+      ],
+      [1800,2400,2400,2760]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    callout('NEGOTIATION PRINCIPLE', 'Data is the leverage. Before accepting or rejecting any supplier request, run their four score card metrics. If a supplier with poor GMROI requests more space, your response is data-backed: "Your current GMROI is 1.4 vs our category average of 2.1. We will be reducing your allocation at the next reset unless you can offer terms that improve this." This is how Walmart, Tesco, and Croma manage supplier relationships. The data is not confrontational — it is professional.', C.blue),
+    h2('12.2  Psychological Pricing Architecture'),
+    makeTable(
+      ['Technique','Mechanism','Application in Your Store','Example'],
+      [
+        ['Anchor Pricing','First price seen sets the reference frame for all subsequent prices. High anchor makes mid-price seem reasonable.','Display Best-tier (highest price) prominently before the customer reaches Better-tier.','₹12,000 food processor displayed before ₹5,500 mixer grinder — ₹5,500 now feels accessible.'],
+        ['Charm Pricing','₹X,999 pricing reduces perceived price to the ₹X,000 tier psychologically.','Apply to all mid and entry tier products. Best-tier can use round numbers (signals premium).','₹3,999 vs ₹4,000 — customer perceives ₹3,000s, not ₹4,000s.'],
+        ['Price Laddering','Visible progression from Good to Better to Best with clear price gaps teaches the value story.','GBB display always shows all three tiers with price tags visible. Customer reads the ladder.','₹2,500 / ₹4,999 / ₹8,500 — each step feels justified by feature improvement.'],
+        ['Bundle Saving','Show the individual prices and the bundle price, making the saving explicit.','All adjacency bundle displays must show the saving, not just the bundle price.','Belan ₹350 + Chakla ₹280 = ₹630 separately. Bundle: ₹549. "Save ₹81."'],
+        ['Decoy Pricing','A third option between two makes one of the two more attractive.','Use within-brand options: two sizes of the same product — the mid-size becomes the "logical" choice.','0.5L at ₹399, 1L at ₹599, 2L at ₹1,200 — 1L looks like the obvious value.'],
+      ],
+      [1600,2400,2400,3160]
+    ),
+    new Paragraph({ spacing:{before:160,after:0}, children:[new TextRun({text:'',size:4})] }),
+    pageBreak(),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FINAL SUMMARY
+// ─────────────────────────────────────────────────────────────────
+function finalSummary() {
+  return [
+    sectionBanner('∑', 'The Guiding Principles — What Separates Professional Display From Arrangement'),
+    new Paragraph({ spacing:{before:120,after:0}, children:[new TextRun({text:'',size:4})] }),
+    body('Twelve sections compress into six principles that govern every display decision a professional makes:'),
+    new Paragraph({ spacing:{before:80,after:40}, children:[new TextRun({text:'',size:4})] }),
+    rule('SPACE IS A FINANCIAL INSTRUMENT. Every square foot has a cost and a yield. Professional display maximises yield. GMROI and SpLF are the only legitimate measures of whether a display decision is correct.', '01'),
+    new Paragraph({ spacing:{before:40,after:40}, children:[new TextRun({text:'',size:4})] }),
+    rule('THE CUSTOMER\'S DECISION SEQUENCE DETERMINES THE SHELF SEQUENCE. The Consumer Decision Tree is built from observation, basket data, and interview. The shelf is then organised to mirror that sequence. Cognitive friction is the enemy of conversion.', '02'),
+    new Paragraph({ spacing:{before:40,after:40}, children:[new TextRun({text:'',size:4})] }),
+    rule('DATA GOVERNS PLACEMENT. GMROI and SpLF determine which products get eye level and how many facings. Supplier relationships, personal preference, and historical habit are not legitimate criteria. Data is the leverage.', '03'),
+    new Paragraph({ spacing:{before:40,after:40}, children:[new TextRun({text:'',size:4})] }),
+    rule('TOUCH DRIVES PURCHASE. Every product you want to sell must be accessible for physical interaction — reachable, at the right height, with a demo unit where the category justifies it. A product behind glass or above reach is a product you are choosing not to sell.', '04'),
+    new Paragraph({ spacing:{before:40,after:40}, children:[new TextRun({text:'',size:4})] }),
+    rule('MEASUREMENT IS NOT OPTIONAL. A display change without before-and-after measurement is a guess. Install a footfall counter. Pull POS data. Photograph baselines. Measure at 30 and 60 days. The discipline of measurement converts the store from a static arrangement into a continuously improving system.', '05'),
+    new Paragraph({ spacing:{before:40,after:40}, children:[new TextRun({text:'',size:4})] }),
+    rule('SYSTEMS BEAT INDIVIDUALS. The most important output of a professional display programme is not the display — it is the planogram document, the morning walk checklist, the 90-day review cycle, and the KPI dashboard that maintain and improve the display over time. Systems are what makes a store scalable.', '06'),
+    new Paragraph({ spacing:{before:200,after:80}, children:[new TextRun({text:'',size:4})] }),
+    divider(),
+    new Paragraph({ spacing:{before:80,after:40}, alignment:AlignmentType.CENTER, children:[new TextRun({ text:'KEY PUBLISHED SOURCES', font:'Arial', size:18, bold:true, color:C.slate })] }),
+    body('Kotler, P. (1973). Atmospherics as a Marketing Tool. Journal of Retailing, 49(4), 48–64.'),
+    body('Underhill, P. (1999). Why We Buy: The Science of Shopping. Simon & Schuster.'),
+    body('Milliman, R.E. (1982). Using Background Music to Affect Supermarket Shoppers. Journal of Marketing, 46(3), 86–91.'),
+    body('North, A.C., Hargreaves, D.J., McKendrick, J. (1999). In-Store Music on Wine Selections. Journal of Applied Psychology, 84(2), 271–276.'),
+    body('Simonson, I., Tversky, A. (1992). Choice in Context: Tradeoff Contrast and Extremeness Aversion. Journal of Marketing Research, 29(3), 281–295.'),
+    body('Spangenberg, E.R., Crowley, A.E., Henderson, P.W. (1996). Improving the Store Environment. Journal of Marketing, 60(2), 67–80.'),
+    body('Iyengar, S., Lepper, M. (2000). When Choice is Demotivating. Journal of Personality & Social Psychology, 79(6), 995–1006.'),
+    body('Schwartz, B. (2004). The Paradox of Choice. HarperCollins.'),
+    body('Mehrabian, A., Russell, J.A. (1974). An Approach to Environmental Psychology. MIT Press.'),
+    body('Harris, B. (1994). Category Management — Positioning Your Organisation to Win. The Partnering Group.'),
+    body('FieldPie (2026). The 2026 Comprehensive Guide to Smarter Shelf Strategy. fieldpie.com'),
+    new Paragraph({ spacing:{before:120,after:80}, alignment:AlignmentType.CENTER, children:[new TextRun({ text:'Prepared May 2026  |  Retail Display & Space Planning Intelligence Framework  |  Director Reference', font:'Arial', size:17, color:C.slate, italics:true })] }),
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ASSEMBLE DOCUMENT
+// ─────────────────────────────────────────────────────────────────
+const doc = new Document({
+  numbering: {
+    config: [
+      {
+        reference: 'bullets',
+        levels: [{
+          level: 0, format: LevelFormat.BULLET, text: '▸',
+          alignment: AlignmentType.LEFT,
+          style: { paragraph: { indent: { left: 600, hanging: 300 } } }
+        }]
+      }
+    ]
+  },
+  styles: {
+    default: { document: { run: { font: 'Arial', size: 20 } } },
+    paragraphStyles: [
+      { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+        run: { size: 32, bold: true, font: 'Arial', color: C.navy },
+        paragraph: { spacing: { before: 360, after: 160 }, outlineLevel: 0 } },
+      { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+        run: { size: 26, bold: true, font: 'Arial', color: C.blue },
+        paragraph: { spacing: { before: 280, after: 120 }, outlineLevel: 1 } },
+      { id: 'Heading3', name: 'Heading 3', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+        run: { size: 22, bold: true, font: 'Arial', color: C.teal },
+        paragraph: { spacing: { before: 200, after: 80 }, outlineLevel: 2 } },
+    ]
+  },
+  sections: [{
+    properties: {
+      page: {
+        size: { width: 12240, height: 15840 },
+        margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 }
+      }
+    },
+    headers: {
+      default: new Header({
+        children: [new Paragraph({
+          children: [
+            new TextRun({ text: 'RETAIL DISPLAY & SPACE PLANNING INTELLIGENCE FRAMEWORK', font: 'Arial', size: 16, color: C.slate }),
+            new TextRun({ text: '  |  Director Reference  |  May 2026', font: 'Arial', size: 16, color: 'AAAAAA' }),
+          ],
+          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: C.teal, space: 4 } },
+          spacing: { after: 0 }
+        })]
+      })
+    },
+    footers: {
+      default: new Footer({
+        children: [new Paragraph({
+          children: [
+            new TextRun({ text: 'Domestic Appliances & Kitchenware Retail  ', font: 'Arial', size: 16, color: 'AAAAAA' }),
+            new TextRun({ children: [new PageNumber()], font: 'Arial', size: 16, color: C.slate }),
+          ],
+          border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.teal, space: 4 } },
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 0 }
+        })]
+      })
+    },
+    children: [
+      ...coverPage(),
+      ...section1(),
+      ...section2(),
+      ...section3(),
+      ...section4(),
+      ...section5(),
+      ...section6(),
+      ...section7(),
+      ...section8(),
+      ...section9(),
+      ...section10(),
+      ...section11(),
+      ...section12(),
+      ...finalSummary(),
+    ]
+  }]
+});
+
+Packer.toBuffer(doc).then(buffer => {
+  fs.writeFileSync('/home/claude/Retail_Display_Intelligence_Framework.docx', buffer);
+  console.log('Done');
+});
